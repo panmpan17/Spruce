@@ -2,45 +2,60 @@ import pygame
 import os
 from color import clr
 
-GRASS = '0'
-ROCK = '1'
+from pygame_extendtion import *
+
+GRASS = "0"
+ROCK = "1"
+TREE = "2"
 
 GROUND = 0
 UNDERGROUND = 1
 
-class ScreenInfo:
-    def __init__(self, width, height, block_size):
-        self.width = width
-        self.height = height
-        self.block_size = block_size
-
-        self.width_blocks = int(width / block_size)
-        self.height_blocks = int(height / block_size)
-
-    def set_screen_size(self, width, height):
-        self.width = width
-        self.height = height
-
-        self.width_blocks = int(width / self.block_size)
-        self.height_blocks = int(height / self.block_size)
-
-    def set_block_size(self, block_size):
-        self.block_size = block_size
-
-        self.width_blocks = int(self.width / block_size)
-        self.height_blocks = int(self.height / block_size)
-
 class Layer:
-    def __init__(self, type_, map_, width, height, draw_index, screen):
+    def __init__(self, screen, type_=None, map_=None, width=None, height=None, draw_index=None):
         self.type = type_
         self.map = map_
         self.width = width
         self.height = height
         self.draw_index = draw_index
+        self.forbidden = {}
+
+        self.max_x = None
+        self.max_y = None
 
         self.screen = screen
 
         if type_ == GROUND:
+            self.image_source = pygame.image.load("texture/grass.png")
+            self.texture = "grass"
+
+    def load(self, layerfile):
+        with open(layerfile) as file:
+            read = file.read()
+        info = read.split("\n")
+        self.width, self.height = [int(i) for i in info[0].split("x")]
+        self.type = int(info[1])
+
+        self.map = []
+        self.draw_index = {}
+        for i in range(2, len(info)):
+            col = []
+            for count, e in enumerate(info[i]):
+                if e != GRASS:
+                    if i - 1 not in self.draw_index:
+                        self.draw_index[i - 1] = {}
+                    self.draw_index[i - 1][count] = e
+
+                    if i - 1 not in self.forbidden:
+                        self.forbidden[i - 1] = set()
+                    self.forbidden[i - 1].add(count)
+                col.append(e)
+            self.map.append(col)
+
+        self.max_x = len(self.map[0])
+        self.max_y = len(self.map)
+
+        if self.type == GROUND:
             self.image_source = pygame.image.load("texture/grass.png")
             self.texture = "grass"
 
@@ -89,6 +104,8 @@ class Layer:
                         # draw block texture
                         if cell == ROCK:
                             pygame.draw.rect(surface, clr.gray, [x, y, blk_sz, blk_sz])
+                        elif cell == TREE:
+                            pygame.draw.rect(surface, clr.brown, [x, y, blk_sz, blk_sz])
 
         width, height = self.screen.width, self.screen.height
         # draw border if view point reach the map border
@@ -108,9 +125,8 @@ class Layer:
 
 class EnviromentController:
     def __init__(self, screen_info):
-        self.surface = None
-
         self.screen = screen_info
+        self.surface = None
 
         self.ground = None
 
@@ -121,34 +137,23 @@ class EnviromentController:
     def change_screen_size(self):
         self.ground.change_screen_size()
 
-    def load(self, filename):
-        with open(filename) as file:
-            read = file.read()
-        info = read.split("\n")
-        width, height = info[0].split("x")
-        width, height = int(width), int(height)
+    def load(self, mappath):
+        path = os.getcwd()
+        path = os.path.join(path, mappath, "ground.txt")
 
-        map_ = []
-        draw_index = {}
-        for i in range(1, len(info)):
-            col = []
-            for count, e in enumerate(info[i]):
-                if e != GRASS:
-                    if i - 1 not in draw_index:
-                        draw_index[i - 1] = {}
-                    draw_index[i - 1][count] = e
-                col.append(e)
-            map_.append(col)
-
-        self.ground = Layer(GROUND, map_, width, height, draw_index, self.screen)
+        if not os.path.isfile(path):
+            raise Exception(f"path {path} not exist")
+        # load diffrent layer
+        self.ground = Layer(self.screen)
+        self.ground.load(path)
 
     def in_y_view(self, viewY):
-        if viewY <= self.ground.width - self.screen.width_blocks:
+        if viewY <= self.ground.height - self.screen.height_blocks:
             return True
         return False
 
     def in_x_view(self, viewX):
-        if viewX <= self.ground.height - self.screen.height_blocks:
+        if viewX <= self.ground.width - self.screen.width_blocks:
             return True
         return False
 

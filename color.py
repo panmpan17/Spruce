@@ -12,6 +12,7 @@ class clr:
     drak_blue = (20, 20, 240)
     purple = (220, 20, 220)
     gray = (125, 125, 125)
+    brown = (142, 82, 17)
 
     @staticmethod
     def random(minc=0, maxc=255):
