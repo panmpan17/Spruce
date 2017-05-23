@@ -6,9 +6,11 @@ from color import clr
 
 from platform import system as osSystem
 
+from pygame_extendtion import *
 from enviroment import EnviromentController
 from animal import AnimalController
-from pygame_extendtion import *
+from role import RoleController
+from ui import UIController
 
 from threading import Thread
 from time import sleep
@@ -34,37 +36,41 @@ class App:
         self.block_size_level = BLK_SZ_LEVELS.index(BLOCK_SIZE)
         self.screen = ScreenInfo(block_size=BLOCK_SIZE, width=WIDTH, height=HEIGHT)
 
-        self.envCtler = EnviromentController(self.screen)
-        self.animalCtler = AnimalController(self.screen)
+        self.envCtlr = EnviromentController(self.screen)
+        self.animalCtlr = AnimalController(self.screen)
+        self.roleCtlr = RoleController(self.screen)
+
+        self.UICtlr = UIController(self.screen)
 
         self.GameEngine = None
         self.STOP = False
 
     def load_map(self, mappath):
-        self.envCtler.load(mappath)
-        self.animalCtler.load(mappath)
+        self.envCtlr.load(mappath)
+        self.animalCtlr.load(mappath)
+        self.roleCtlr.load(mappath)
 
-        self.animalCtler.setUpCtlr(self.envCtler)
+        self.animalCtlr.setUpCtlr(self.envCtlr, self.roleCtlr)
+
+        self.UICtlr.setUpCtlr(self.roleCtlr)
 
     def zoom_in(self):
         if self.block_size_level < len(BLK_SZ_LEVELS) - 1:
             self.block_size_level += 1
             self.screen.set_block_size(BLK_SZ_LEVELS[self.block_size_level])
-            self.envCtler.change_screen_size()
-            pygame.event.post(MyPygameEvent.VBUPDATE)
+            self.envCtlr.change_screen_size()
 
     def zoom_out(self):
         if self.block_size_level >= 1:
             self.block_size_level -= 1
             self.screen.set_block_size(BLK_SZ_LEVELS[self.block_size_level])
-            self.envCtler.change_screen_size()
-            pygame.event.post(MyPygameEvent.VBUPDATE)
+            self.envCtlr.change_screen_size()
 
     def loadGameEngine(self):
-        tick = 10
+        tick = 30
         clock = pygame.time.Clock()
         while not self.STOP:
-            self.animalCtler.tick_load(1/tick)
+            self.animalCtlr.tick_load(1/tick)
             clock.tick(tick)
 
     def run(self):
@@ -76,23 +82,29 @@ class App:
         pygame.key.set_repeat(1, 20)
 
         self.window = pygame.display.set_mode((WIDTH, HEIGHT))
-        self.envCtler.change_surface(self.window)
-        self.animalCtler.change_surface(self.window)
+        self.envCtlr.change_surface(self.window)
+        self.animalCtlr.change_surface(self.window)
+        self.roleCtlr.change_surface(self.window)
+
+        self.UICtlr.change_surface(self.window)
 
         pygame.display.set_caption("Spruce")
 
 
         clock = pygame.time.Clock()
 
-        pygame.event.post(MyPygameEvent.VBUPDATE)
         count = 0
         viewY = 0
         viewX = 0
         while True:
             for event in pygame.event.get():
-                # print(event.type)
                 if event.type == QUIT:
                     self.stop()
+
+                elif event.type == MOUSEDOWN:
+
+                    self.UICtlr.click(event.pos, viewX, viewY)
+
                 elif event.type == KEYDOWN:
                     keys = pygame.key.get_pressed()
 
@@ -103,7 +115,7 @@ class App:
                             viewY -= 1
                             camera_moved = True
                     elif keys[pygame.K_s]:
-                        if self.envCtler.in_y_view(viewY):
+                        if self.envCtlr.in_y_view(viewY):
                             viewY += 1
                             camera_moved = True
 
@@ -112,13 +124,23 @@ class App:
                             viewX -= 1
                             camera_moved = True
                     elif keys[pygame.K_d]:
-                        if self.envCtler.in_x_view(viewX):
+                        if self.envCtlr.in_x_view(viewX):
                             viewX += 1
                             camera_moved = True
                     if camera_moved:
-                        pygame.event.post(MyPygameEvent.VBUPDATE)
                         continue
 
+                    # role movement
+                    if keys[pygame.K_RIGHT]:
+                        self.roleCtlr.roles[1].x += 1
+                    elif keys[pygame.K_LEFT]:
+                        self.roleCtlr.roles[1].x -= 1
+                    if keys[pygame.K_UP]:
+                        self.roleCtlr.roles[1].y -= 1
+                    elif keys[pygame.K_DOWN]:
+                        self.roleCtlr.roles[1].y += 1
+
+                    # zoom
                     if keys[pygame.K_EQUALS]:
                         blz_size_level = self.block_size_level
 
@@ -134,16 +156,17 @@ class App:
                         elif keys[pygame.K_LMETA]:
                             self.zoom_out()
 
-                elif event.type == MyPygameEvent.VBUPDATE.type:
-                    self.envCtler.render(viewX, viewY)
-                    self.animalCtler.render(viewX, viewY)
-                    pygame.display.flip()
+            self.envCtlr.render(viewX, viewY)
+            self.animalCtlr.render(viewX, viewY)
+            self.roleCtlr.render(viewX, viewY)
+
+            self.UICtlr.render(viewX, viewY)
+            pygame.display.flip()
 
             clock.tick(30)
 
     def stop(self):
         self.STOP = True
-        # self.GameEngine.terminate()
         pygame.quit()
         exit()
 

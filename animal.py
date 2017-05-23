@@ -14,6 +14,8 @@ LEFT = 2
 UP = 3
 DOWN = 4
 
+ANIMAL_ROLE_DISTANCE = 10
+
 class AnimalBasic:
     def __init__(self, x, y, tamed, type_=None):
         self.x = x
@@ -44,11 +46,14 @@ class AnimalBasic:
 
     def rest(self, tickInterval):
         self.direction = None
-        self.rest_time = randint(1 / tickInterval, 1.5 / tickInterval)
+        self.rest_time = randint(2 / tickInterval, 3 / tickInterval)
 
     def decideDirection(self):
-        self.direction = LEFT
+        self.direction = randint(1, 4)
         self.steps = randint(5, 15)
+
+    def changeDriection(self):
+        self.direction = randint(1, 4)
 
 class Cow(AnimalBasic):
     def __init__(self, x, y, tamed):
@@ -70,18 +75,20 @@ class AnimalController:
         self.screen = screen_info
         self.surface = None
         self.envCtlr = None
+        self.roleCtlr = None
 
         self.animals = []
 
-    def setUpCtlr(self, envCtlr):
+    def setUpCtlr(self, envCtlr, roleCtlr):
         self.envCtlr = envCtlr
+        self.roleCtlr = roleCtlr
 
     def change_surface(self, surface):
-        self.surface = randint(1,4)
-        self.change_screen_size()
+        self.surface = surface
+        # self.change_screen_size()
 
-    def change_screen_size(self):
-        pass
+    # def change_screen_size(self):
+    #     pass
 
     def load(self, mappath):
         path = os.getcwd()
@@ -132,51 +139,68 @@ class AnimalController:
 
             else:
                 tick_step = animal.step * tickInterval
-                if animal.direction == LEFT:
-                    passed = True
+                passed = True
 
+                if animal.direction == LEFT:
                     if int(animal.x) == 0:
                         passed = False
-                    try:
-                        if int(animal.x - tick_step) in self.envCtlr.ground.forbidden[int(animal.y)]:
-                            passed = False
-                    except:
-                        pass
 
-                    if not passed:
-                        animal.decideDirection()
-                        continue
+                    else:
+                        try:
+                            if int(animal.x - tick_step) in self.envCtlr.ground.forbidden[int(animal.y)]:
+                                passed = False
+                        except:
+                            pass
+
+                    if passed:
+                        # won't get closer to role
+                        role = self.roleCtlr.roles[1]
+                        now_distance = count_distance(animal.x, animal.y, role.x, role.y)
+
+                        if now_distance < ANIMAL_ROLE_DISTANCE:
+                            next_distance = count_distance(animal.x - tick_step, animal.y, role.x, role.y)
+                            if now_distance > next_distance:
+                                passed = False
+
                 elif animal.direction == RIGHT:
-                    passed = True
-
                     if int(animal.x) == self.envCtlr.ground.max_x - 1:
                         passed = False
+
                     try:
-                        if int(animal.x + 1 + tickInterval) in self.envCtlr.ground.forbidden[int(animal.y)]:
+                        if int(animal.x + 1 + tick_step) in self.envCtlr.ground.forbidden[int(animal.y)]:
                             passed = False
                     except:
                         pass
 
-                    if not passed:
-                        animal.decideDirection()
-                        continue
-                elif animal.direction == UP:
-                    passed = True
+                    if passed:
+                        role = self.roleCtlr.roles[1]
+                        now_distance = count_distance(animal.x, animal.y, role.x, role.y)
 
+                        if now_distance < ANIMAL_ROLE_DISTANCE:
+                            next_distance = count_distance(animal.x + tick_step, animal.y, role.x, role.y)
+                            if now_distance > next_distance:
+                                passed = False
+
+                elif animal.direction == UP:
                     if int(animal.y) == 0:
                         passed = False
+
                     try:
                         if int(animal.x) in self.envCtlr.ground.forbidden[int(animal.y - tick_step)]:
                             passed = False
                     except:
                         pass
 
-                    if not passed:
-                        animal.decideDirection()
-                        continue
-                elif animal.direction == DOWN:
-                    passed = True
+                    if passed:
+                        role = self.roleCtlr.roles[1]
+                        now_distance = count_distance(animal.x, animal.y, role.x, role.y)
 
+                        if now_distance < ANIMAL_ROLE_DISTANCE:
+                            next_distance = count_distance(animal.x, animal.y - tick_step, role.x, role.y)
+                            if now_distance > next_distance:
+                                passed = False
+
+                elif animal.direction == DOWN:
                     if int(animal.y) == self.envCtlr.ground.max_y - 1:
                         passed = False
                     try:
@@ -185,12 +209,20 @@ class AnimalController:
                     except:
                         pass
 
-                    if not passed:
-                        animal.decideDirection()
-                        continue
+                    if passed:
+                        role = self.roleCtlr.roles[1]
+                        now_distance = count_distance(animal.x, animal.y, role.x, role.y)
+
+                        if now_distance < ANIMAL_ROLE_DISTANCE:
+                            next_distance = count_distance(animal.x, animal.y + tick_step, role.x, role.y)
+                            if now_distance > next_distance:
+                                passed = False
+
+                if not passed:
+                    animal.changeDriection()
+                    continue
 
                 animal.move(tickInterval)
-        pygame.event.post(MyPygameEvent.VBUPDATE)
 
     def render(self, viewX, viewY):
         blk_sz = self.screen.block_size
@@ -201,7 +233,6 @@ class AnimalController:
                     x = (animal.x - viewX) * blk_sz
                     y = (animal.y - viewY) * blk_sz
 
-                    blk_sz = self.screen.block_size
                     if animal.type == COW:
                         if blk_sz not in self.cow_textures:
                             self.cow_textures[blk_sz] = pygame.transform.scale(
