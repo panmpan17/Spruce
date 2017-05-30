@@ -13,6 +13,7 @@ class clr:
     purple = (220, 20, 220)
     gray = (125, 125, 125)
     brown = (142, 82, 17)
+    black_ui_bg = (46, 46, 48)
 
     @staticmethod
     def random(minc=0, maxc=255):

@@ -1,0 +1,58 @@
+{
+    "1": {
+        "name": "Meat",
+        "src": "meat.png"
+    },
+    "2":{
+        "name": "Milk",
+        "src": "milk.png"
+    },
+    "3": {
+        "name": "Feather",
+        "src": "feather.png"
+    },
+    "4":{
+        "name": "Wool",
+        "src": "wool.png"
+    },
+    "5":{
+        "name": "Egg",
+        "src": "egg.png"
+    },
+    "6":{
+        "name": "Leather",
+        "src": "leather.png"
+    },
+    "7":{
+        "name": "Wood",
+        "src": "wood.png"
+    },
+    "8":{
+        "name": "Stone",
+        "src": "stone.png"
+    },
+    "9":{
+        "name": "Dirt",
+        "src": "dirt.png"
+    },
+    "10":{
+        "name": "Iron",
+        "src": "iron.png"
+    },
+    "11":{
+        "name": "Copper",
+        "src": "copper.png"
+    },
+    "12":{
+        "name": "Coal",
+        "src": "coal.png"
+    },
+    "13":{
+        "name": "Steel",
+        "src": "steel.png"
+    },
+    "14":{
+        "name": "Tree sapling",
+        "src": "tree_sapling.png"
+    }
+}

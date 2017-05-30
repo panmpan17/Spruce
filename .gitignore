@@ -1,3 +1,6 @@
 __pycache__/
 map/
 doc/
+dist/
+build/
+texture/extend/*

@@ -25,6 +25,7 @@ class Layer:
 
         self.screen = screen
 
+        # self.stone = pygame.image.load("texture/stone.png")
         if type_ == GROUND:
             self.image_source = pygame.image.load("texture/grass.png")
             self.texture = "grass"
@@ -42,13 +43,13 @@ class Layer:
             col = []
             for count, e in enumerate(info[i]):
                 if e != GRASS:
-                    if i - 1 not in self.draw_index:
-                        self.draw_index[i - 1] = {}
-                    self.draw_index[i - 1][count] = e
+                    if i - 2 not in self.draw_index:
+                        self.draw_index[i - 2] = {}
+                    self.draw_index[i - 2][count] = e
 
-                    if i - 1 not in self.forbidden:
-                        self.forbidden[i - 1] = set()
-                    self.forbidden[i - 1].add(count)
+                    if i - 2 not in self.forbidden:
+                        self.forbidden[i - 2] = set()
+                    self.forbidden[i - 2].add(count)
                 col.append(e)
             self.map.append(col)
 
@@ -103,6 +104,7 @@ class Layer:
 
                         # draw block texture
                         if cell == ROCK:
+                            # surface.blit(self.stone, (x, y))
                             pygame.draw.rect(surface, clr.gray, [x, y, blk_sz, blk_sz])
                         elif cell == TREE:
                             pygame.draw.rect(surface, clr.brown, [x, y, blk_sz, blk_sz])
@@ -110,17 +112,13 @@ class Layer:
         width, height = self.screen.width, self.screen.height
         # draw border if view point reach the map border
         if viewX > self.width - self.screen.width_blocks:
-            # right border
             pygame.draw.rect(surface, clr.black, (width - blk_sz, 0, blk_sz, height))
         elif viewX < 0:
-            # left border
             pygame.draw.rect(surface, clr.black, (0, 0, blk_sz, height))
 
         if viewY > self.height - self.screen.height_blocks:
-            # bottom border
             pygame.draw.rect(surface, clr.black, (0, height - blk_sz, width, blk_sz))
         elif viewY < 0:
-            # top border
             pygame.draw.rect(surface, clr.black, (0, 0, width, blk_sz))
 
 class EnviromentController:
@@ -129,6 +127,7 @@ class EnviromentController:
         self.surface = None
 
         self.ground = None
+        self.present_layer = None
 
     def change_surface(self, surface):
         self.surface = surface
@@ -136,6 +135,15 @@ class EnviromentController:
 
     def change_screen_size(self):
         self.ground.change_screen_size()
+
+    def change_map(self, pos, block_id, layer=None):
+        if layer == None:
+            layer = self.present_layer
+
+        row, col = pos
+        layer.map[col][row] = block_id
+
+        layer.draw_index[col][row] = block_id
 
     def load(self, mappath):
         path = os.getcwd()
@@ -146,6 +154,8 @@ class EnviromentController:
         # load diffrent layer
         self.ground = Layer(self.screen)
         self.ground.load(path)
+
+        self.present_layer = self.ground
 
     def in_y_view(self, viewY):
         if viewY <= self.ground.height - self.screen.height_blocks:

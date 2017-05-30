@@ -51,8 +51,9 @@ class App:
         self.roleCtlr.load(mappath)
 
         self.animalCtlr.setUpCtlr(self.envCtlr, self.roleCtlr)
+        self.roleCtlr.setUpCtrl(self.envCtlr)
 
-        self.UICtlr.setUpCtlr(self.roleCtlr)
+        self.UICtlr.setUpCtlr(self.envCtlr, self.roleCtlr)
 
     def zoom_in(self):
         if self.block_size_level < len(BLK_SZ_LEVELS) - 1:
@@ -68,18 +69,17 @@ class App:
 
     def loadGameEngine(self):
         tick = 30
+        tick_interval = 1 / tick
         clock = pygame.time.Clock()
         while not self.STOP:
-            self.animalCtlr.tick_load(1/tick)
+            self.animalCtlr.tick_load(tick_interval)
+            self.roleCtlr.tick_load(tick_interval)
             clock.tick(tick)
 
-    def run(self):
+    def set_up(self):
         pygame.init()
 
         self.GameEngine = Thread(target=self.loadGameEngine)
-        self.GameEngine.start()
-
-        pygame.key.set_repeat(1, 20)
 
         self.window = pygame.display.set_mode((WIDTH, HEIGHT))
         self.envCtlr.change_surface(self.window)
@@ -88,9 +88,13 @@ class App:
 
         self.UICtlr.change_surface(self.window)
 
+        pygame.key.set_repeat(1, 20)
         pygame.display.set_caption("Spruce")
 
+    def run(self):
+        self.set_up()
 
+        self.GameEngine.start()
         clock = pygame.time.Clock()
 
         count = 0
@@ -102,8 +106,10 @@ class App:
                     self.stop()
 
                 elif event.type == MOUSEDOWN:
-
-                    self.UICtlr.click(event.pos, viewX, viewY)
+                    if event.button == 1:
+                        self.UICtlr.left_click(event.pos, viewX, viewY)
+                    elif event.button == 3:
+                        self.UICtlr.right_click(event.pos, viewX, viewY)
 
                 elif event.type == KEYDOWN:
                     keys = pygame.key.get_pressed()
@@ -144,16 +150,16 @@ class App:
                     if keys[pygame.K_EQUALS]:
                         blz_size_level = self.block_size_level
 
-                        if PLATFORM == "Darwin" and keys[pygame.K_LMETA]:
+                        if PLATFORM == "Darwin" and (keys[pygame.K_LMETA] or keys[pygame.K_RMETA]):
                             self.zoom_in()
-                        elif keys[pygame.K_LMETA]:
+                        elif keys[pygame.K_LMETA] or keys[pygame.K_RMETA]:
                             self.zoom_in()
                     elif keys[pygame.K_MINUS]:
                         blz_size_level = self.block_size_level
 
-                        if PLATFORM == "Darwin" and keys[pygame.K_LMETA]:
+                        if PLATFORM == "Darwin" and (keys[pygame.K_LMETA] or keys[pygame.K_RMETA]):
                             self.zoom_out()
-                        elif keys[pygame.K_LMETA]:
+                        elif keys[pygame.K_LMETA] or keys[pygame.K_RMETA]:
                             self.zoom_out()
 
             self.envCtlr.render(viewX, viewY)
@@ -167,6 +173,7 @@ class App:
 
     def stop(self):
         self.STOP = True
+        self.envCtlr.stop()
         pygame.quit()
         exit()
 
