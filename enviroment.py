@@ -25,10 +25,19 @@ class Layer:
 
         self.screen = screen
 
-        # self.stone = pygame.image.load("texture/stone.png")
         if type_ == GROUND:
             self.image_source = pygame.image.load("texture/grass.png")
             self.texture = "grass"
+
+    def check_overlap(self, blocks, pos):
+        blk_sz = self.screen.block_size
+        for block in blocks:
+            x = block[0] + pos[0] // blk_sz
+            y = block[1] + pos[1] // blk_sz
+
+            if self.map[y][x] != GRASS:
+                return True
+        return False
 
     def load(self, layerfile):
         with open(layerfile) as file:

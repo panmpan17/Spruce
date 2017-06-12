@@ -4,3 +4,4 @@ doc/
 dist/
 build/
 texture/extend/*
+count-code.py

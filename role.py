@@ -77,6 +77,8 @@ class Inventory:
             for i in type_slot:
                 if count + self.slots[i].count <= 50:
                     self.slots[i].count += count
+                    count = 0
+                    break
                 elif self.slots[i].count < 50:
                     count -= (50 - self.slots[i].count)
                     self.slots[i].count = 50
@@ -207,7 +209,7 @@ class RoleController:
                         if int(role.working.progress) == role.working.progress_need:
                             self.evnCtlr.change_map(role.working.work_with_id, "0")
 
-                            role.inventory.add("7", 60)
+                            role.inventory.add("7", randint(10, 30))
                             role.working = None
                         else:
                             role.working.progress += tick_interval

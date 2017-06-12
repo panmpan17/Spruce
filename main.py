@@ -11,6 +11,7 @@ from enviroment import EnviromentController
 from animal import AnimalController
 from role import RoleController
 from ui import UIController
+from building import BuildingController, BuildingInfo
 
 from threading import Thread
 from time import sleep
@@ -23,7 +24,8 @@ BLOCK_SIZE = 10
 BLK_SZ_LEVELS = (
     10,
     20,
-    25
+    25,
+    50
     )
 
 QUIT = pygame.QUIT
@@ -34,13 +36,17 @@ class App:
     def __init__(self):
         self.window = None
         self.block_size_level = BLK_SZ_LEVELS.index(BLOCK_SIZE)
+
         self.screen = ScreenInfo(block_size=BLOCK_SIZE, width=WIDTH, height=HEIGHT)
+        self.build_info = BuildingInfo()
+        self.build_info.load("BuildingInfo.json")
 
         self.envCtlr = EnviromentController(self.screen)
         self.animalCtlr = AnimalController(self.screen)
         self.roleCtlr = RoleController(self.screen)
+        self.buildCtlr = BuildingController(self.screen, self.build_info)
 
-        self.UICtlr = UIController(self.screen)
+        self.UICtlr = UIController(self.screen, self.build_info)
 
         self.GameEngine = None
         self.STOP = False
@@ -49,11 +55,16 @@ class App:
         self.envCtlr.load(mappath)
         self.animalCtlr.load(mappath)
         self.roleCtlr.load(mappath)
+        self.buildCtlr.load(mappath)
 
         self.animalCtlr.setUpCtlr(self.envCtlr, self.roleCtlr)
         self.roleCtlr.setUpCtrl(self.envCtlr)
 
-        self.UICtlr.setUpCtlr(self.envCtlr, self.roleCtlr)
+        self.UICtlr.setUpCtlr(
+            self.envCtlr,
+            self.roleCtlr,
+            self.buildCtlr
+            )
 
     def zoom_in(self):
         if self.block_size_level < len(BLK_SZ_LEVELS) - 1:
@@ -85,6 +96,7 @@ class App:
         self.envCtlr.change_surface(self.window)
         self.animalCtlr.change_surface(self.window)
         self.roleCtlr.change_surface(self.window)
+        self.buildCtlr.change_surface(self.window)
 
         self.UICtlr.change_surface(self.window)
 
@@ -104,12 +116,11 @@ class App:
             for event in pygame.event.get():
                 if event.type == QUIT:
                     self.stop()
-
                 elif event.type == MOUSEDOWN:
                     if event.button == 1:
-                        self.UICtlr.left_click(event.pos, viewX, viewY)
+                        self.UICtlr.left_click(viewX, viewY)
                     elif event.button == 3:
-                        self.UICtlr.right_click(event.pos, viewX, viewY)
+                        self.UICtlr.right_click(viewX, viewY)
 
                 elif event.type == KEYDOWN:
                     keys = pygame.key.get_pressed()
@@ -137,14 +148,19 @@ class App:
                         continue
 
                     # role movement
-                    if keys[pygame.K_RIGHT]:
-                        self.roleCtlr.roles[1].x += 1
-                    elif keys[pygame.K_LEFT]:
-                        self.roleCtlr.roles[1].x -= 1
-                    if keys[pygame.K_UP]:
-                        self.roleCtlr.roles[1].y -= 1
-                    elif keys[pygame.K_DOWN]:
-                        self.roleCtlr.roles[1].y += 1
+                    # if keys[pygame.K_RIGHT]:
+                    #     self.roleCtlr.roles[1].x += 1
+                    # elif keys[pygame.K_LEFT]:
+                    #     self.roleCtlr.roles[1].x -= 1
+                    # if keys[pygame.K_UP]:
+                    #     self.roleCtlr.roles[1].y -= 1
+                    # elif keys[pygame.K_DOWN]:
+                    #     self.roleCtlr.roles[1].y += 1
+
+                    if keys[pygame.K_q]:
+                        self.UICtlr.press(pygame.K_q)
+                    elif keys[pygame.K_e]:
+                        self.UICtlr.press(pygame.K_e)
 
                     # zoom
                     if keys[pygame.K_EQUALS]:
@@ -161,10 +177,13 @@ class App:
                             self.zoom_out()
                         elif keys[pygame.K_LMETA] or keys[pygame.K_RMETA]:
                             self.zoom_out()
+                elif event.type == pygame.MOUSEMOTION:
+                    self.UICtlr.mouse_motion(event.pos)
 
             self.envCtlr.render(viewX, viewY)
             self.animalCtlr.render(viewX, viewY)
             self.roleCtlr.render(viewX, viewY)
+            self.buildCtlr.render(viewX, viewY)
 
             self.UICtlr.render(viewX, viewY)
             pygame.display.flip()
