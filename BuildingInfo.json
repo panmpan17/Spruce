@@ -4,7 +4,11 @@
 		"building_src": "storage.png",
 		"icon_src": "storage.png",
 		"width": 2,
-		"height": 3
+		"height": 3,
+		"build_time": 1,
+		"build_need": {
+			"7": 100
+		}
 	},
 	"bd_box": "bounding_box.png",
 	"ovrlp_bd_box": "overlap_bounding_box.png"

@@ -19,7 +19,7 @@ from time import sleep
 PLATFORM = osSystem()
 WIDTH = 750
 HEIGHT = 500
-BLOCK_SIZE = 10
+BLOCK_SIZE = 20
 
 BLK_SZ_LEVELS = (
     10,
@@ -43,7 +43,7 @@ class App:
 
         self.envCtlr = EnviromentController(self.screen)
         self.animalCtlr = AnimalController(self.screen)
-        self.roleCtlr = RoleController(self.screen)
+        self.roleCtlr = RoleController(self.screen, self.build_info)
         self.buildCtlr = BuildingController(self.screen, self.build_info)
 
         self.UICtlr = UIController(self.screen, self.build_info)
@@ -57,8 +57,15 @@ class App:
         self.roleCtlr.load(mappath)
         self.buildCtlr.load(mappath)
 
-        self.animalCtlr.setUpCtlr(self.envCtlr, self.roleCtlr)
-        self.roleCtlr.setUpCtrl(self.envCtlr)
+        self.animalCtlr.setUpCtlr(
+            self.envCtlr,
+            self.roleCtlr)
+
+        self.roleCtlr.setUpCtrl(
+            self.envCtlr,
+            self.buildCtlr,
+            self.UICtlr
+            )
 
         self.UICtlr.setUpCtlr(
             self.envCtlr,
@@ -148,14 +155,14 @@ class App:
                         continue
 
                     # role movement
-                    # if keys[pygame.K_RIGHT]:
-                    #     self.roleCtlr.roles[1].x += 1
-                    # elif keys[pygame.K_LEFT]:
-                    #     self.roleCtlr.roles[1].x -= 1
-                    # if keys[pygame.K_UP]:
-                    #     self.roleCtlr.roles[1].y -= 1
-                    # elif keys[pygame.K_DOWN]:
-                    #     self.roleCtlr.roles[1].y += 1
+                    if keys[pygame.K_RIGHT]:
+                        self.roleCtlr.roles[1].x += 1
+                    elif keys[pygame.K_LEFT]:
+                        self.roleCtlr.roles[1].x -= 1
+                    if keys[pygame.K_UP]:
+                        self.roleCtlr.roles[1].y -= 1
+                    elif keys[pygame.K_DOWN]:
+                        self.roleCtlr.roles[1].y += 1
 
                     if keys[pygame.K_q]:
                         self.UICtlr.press(pygame.K_q)

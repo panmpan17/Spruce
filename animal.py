@@ -14,7 +14,7 @@ LEFT = 2
 UP = 3
 DOWN = 4
 
-ANIMAL_ROLE_DISTANCE = 10
+ANIMAL_ROLE_DISTANCE = 6
 
 class AnimalBasic:
     def __init__(self, x, y, tamed, type_=None):
@@ -50,7 +50,7 @@ class AnimalBasic:
 
     def decideDirection(self):
         self.direction = randint(1, 4)
-        self.steps = randint(5, 15)
+        self.steps = randint(10, 20)
 
     def changeDriection(self):
         self.direction = randint(1, 4)
@@ -58,17 +58,17 @@ class AnimalBasic:
 class Cow(AnimalBasic):
     def __init__(self, x, y, tamed):
         super().__init__(x, y, tamed, COW)
-        self.step = 8
+        self.step = 6
 
 class Sheep(AnimalBasic):
     def __init__(self, x, y, tamed):
         super().__init__(x, y, tamed, SHEEP)
-        self.step = 6
+        self.step = 4
 
 class Chicken(AnimalBasic):
     def __init__(self, x, y, tamed):
         super().__init__(x, y, tamed, CHICKEN)
-        self.step = 4
+        self.step = 2
 
 class AnimalController:
     def __init__(self, screen_info):
@@ -157,9 +157,10 @@ class AnimalController:
                             now_distance = count_distance(animal.x, animal.y, role.x, role.y)
 
                             if now_distance < ANIMAL_ROLE_DISTANCE:
-                                next_distance = count_distance(animal.x, animal.y + tick_step, role.x, role.y)
+                                next_distance = count_distance(animal.x - tick_step, animal.y, role.x, role.y)
                                 if now_distance > next_distance:
                                     passed = False
+                                animal.steps += 1
 
                 elif animal.direction == RIGHT:
                     if int(animal.x) == self.envCtlr.ground.max_x - 1:
@@ -176,9 +177,10 @@ class AnimalController:
                             now_distance = count_distance(animal.x, animal.y, role.x, role.y)
 
                             if now_distance < ANIMAL_ROLE_DISTANCE:
-                                next_distance = count_distance(animal.x, animal.y + tick_step, role.x, role.y)
+                                next_distance = count_distance(animal.x + tick_step, animal.y, role.x, role.y)
                                 if now_distance > next_distance:
                                     passed = False
+                                animal.steps += 1
 
                 elif animal.direction == UP:
                     if int(animal.y) == 0:
@@ -195,9 +197,10 @@ class AnimalController:
                             now_distance = count_distance(animal.x, animal.y, role.x, role.y)
 
                             if now_distance < ANIMAL_ROLE_DISTANCE:
-                                next_distance = count_distance(animal.x, animal.y + tick_step, role.x, role.y)
+                                next_distance = count_distance(animal.x, animal.y - tick_step, role.x, role.y)
                                 if now_distance > next_distance:
                                     passed = False
+                                animal.steps += 1
 
                 elif animal.direction == DOWN:
                     if int(animal.y) == self.envCtlr.ground.max_y - 1:
@@ -216,6 +219,7 @@ class AnimalController:
                                 next_distance = count_distance(animal.x, animal.y + tick_step, role.x, role.y)
                                 if now_distance > next_distance:
                                     passed = False
+                                animal.steps += 1
 
                 if not passed:
                     animal.changeDriection()

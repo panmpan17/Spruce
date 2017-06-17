@@ -13,6 +13,7 @@ class WORK:
     MOVEITEM = "working_move_item"
     MOVE = "working_move"
     PRODUCE = "working_produce"
+    OPEN_STORAGE = "working_open_storage"
 
 class InventoryItem:
     def __init__(self, type_, count, forced):
@@ -23,29 +24,39 @@ class InventoryItem:
     def __repr__(self):
         return f"{self.type} {self.count} {self.forced}"
 
-class Inventory:
-    def __init__(self):
-        self.slots = []
-
+    @staticmethod
     def parse(self, string):
-        items = string.split("|")
+        info = string.split(",")
+
+        type_ = info[0]
+        count = info[1]
+
+        forced = False
+        if len(info) >= 3:
+            forced = info[3]
+            if forced == "t":
+                forced = True
+            else:
+                forced = False
+
+        return InventoryItem(type_, count, forced)
+
+class Inventory:
+    def __init__(self, slots=None, limit=10):
         self.slots = []
 
-        for item in items:
-            if item == "N":
+        if slots == None:
+            for i in range(limit):
                 self.slots.append(None)
-            else:
-                type_, count, forced = item.split(",")
-                count = int(count)
-
-                if forced == "t":
-                    forced = True
-                else:
-                    forced = False
-                self.slots.append(InventoryItem(type_, count, forced))
+        else:
+            self.slots = slots
+        self.limit = limit
 
     def __len__(self):
-        return 10 - self.slots.count(None)
+        if isinstance(self.limt, int):
+            return self.limit - self.slots.count(None)
+        else:
+            return -1
 
     def __getitem__(self, key):
         return self.slots[key]
@@ -99,6 +110,62 @@ class Inventory:
                 return 0
         else:
             return 0
+
+    def take(self, type_, count):
+        slot_empty = []
+        for i, slot in enumerate(self.slots):
+            if slot == None:
+                continue
+            if slot.type == type_:
+                if slot.count <= count:
+                    slot_empty.append(i)
+                    count -= slot.count
+                else:
+                    slot.count -= count
+                    count = 0
+                    break
+
+        if len(slot_empty) > 0:
+            for i in slot_empty:
+                self.slots[i] = None
+        return count
+
+    def count_item(self, type_):
+        c = 0
+        for slot in self.slots:
+            if slot == None:
+                continue
+            if slot.type == type_:
+                c += slot.count
+        return c
+
+    def check_item_forced(self, item_index):
+        if self.slots[item_index] == None:
+            return False
+        return self.slots[item_index].forced
+
+    @staticmethod
+    def parse(string, limit=None):
+        items = string.split("|")
+        slots = []
+
+        for item in items:
+            if item == "N":
+                slots.append(None)
+            else:
+                type_, count, forced = item.split(",")
+                count = int(count)
+
+                if forced == "t":
+                    forced = True
+                else:
+                    forced = False
+                slots.append(InventoryItem(type_, count, forced))
+
+        if limit == None:
+            return Inventory(slots=slots, limit=len(slots))
+        else:
+            return Inventory(slots=slots, limit=limit)
 
 class Working:
     def __init__(self, type_, work_with_id):
@@ -154,24 +221,30 @@ class Role:
 
 
 class RoleController:
-    def __init__(self, screen_info):
+    def __init__(self, screen_info, build_info):
         self.screen = screen_info
+        self.build_info = build_info
         self.evnCtlr = None
-        self.BuildingCtrl = None
+        self.buildCtlr = None
         self.surface = None
 
         self.roles = {}
         self.role_img_src = None
         self.role_textures = {}
 
-    def setUpCtrl(self, evnCtlr):
+    def setUpCtrl(self, evnCtlr, buildCtlr, UICtlr):
         self.evnCtlr = evnCtlr
+        self.buildCtlr = buildCtlr
+        self.UICtlr = UICtlr
 
     def change_surface(self, surface):
         self.surface = surface
 
     def new_work(self, role_id, type_, work_with_id):
         self.roles[role_id].working = Working(type_, work_with_id)
+
+    def check_item_forced(self, role_id, item_index):
+        return self.roles[role_id].inventory.check_item_forced(item_index)
 
     def load(self, mappath):
         path = os.getcwd()
@@ -190,8 +263,7 @@ class RoleController:
             working_info = role_info[-2]
             id_, x, y = [int(i) for i in role_info[:-2]]
 
-            inventory = Inventory()
-            inventory.parse(inventory_info)
+            inventory = Inventory.parse(inventory_info)
 
             # working = Working()
             # working.parse(working_info)
@@ -213,6 +285,41 @@ class RoleController:
                             role.working = None
                         else:
                             role.working.progress += tick_interval
+
+                elif role.working.type == WORK.BUILD:
+                    blueprint = self.buildCtlr.blueprints[role.working.work_with_id]
+                    right_posistion = role.move(blueprint.pos, tick_interval)
+                    resource_need = self.build_info.resource_need[blueprint.type]
+
+                    if right_posistion:
+                        if not blueprint.reach_resrc_need(resource_need):
+                            resource_add = blueprint.put_resrc(
+                                role.inventory,
+                                self.build_info.resource_need[blueprint.type],
+                                )
+
+                            for r, c in resource_add.items():
+                                role.inventory.take(r, c)
+
+                        if blueprint.reach_resrc_need(resource_need):
+                            role.working.progress += tick_interval
+                            if role.working.progress >= self.build_info.build_time[blueprint.type]:
+                                self.buildCtlr.finish_blueprint(id(blueprint))
+                                role.working = None
+                        else:
+                            role.working = None
+
+                elif role.working.type == WORK.OPEN_STORAGE:
+                    building = self.buildCtlr.buildings[role.working.work_with_id]
+                    right_posistion = role.move(building.hitbox_lt, tick_interval)
+
+                    if right_posistion:
+                        self.UICtlr.open_building_ui(
+                            building.type,
+                            role.working.work_with_id,
+                            role.id
+                            )
+                        role.working = None
 
     def render(self, viewX, viewY):
         blk_sz = self.screen.block_size

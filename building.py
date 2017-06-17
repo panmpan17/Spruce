@@ -3,6 +3,7 @@ import os
 import json
 from color import clr
 
+from role import Inventory, InventoryItem
 from pygame_extendtion import *
 
 F_UP = 0
@@ -19,6 +20,9 @@ class BuildingInfo:
 
         self.ovrlp_bd_box_src = None
         self.ovrlp_bd_boxes = {}
+
+        self.resource_need = {}
+        self.build_time = {}
 
     def load(self, file):
         path = os.getcwd()
@@ -49,75 +53,250 @@ class BuildingInfo:
                     pygame.image.load(icon_src),
                     (30, 30))
 
+            self.resource_need[i] = building["build_need"]
+            self.build_time[i] = building["build_time"]
+
+            self.__setattr__(building["name"].upper(), i)
+
 class BluePrint:
-	def __init__(self, type_, pos, facing, build_info):
-		self.type = type_
-		self.pos = pos
-		self.facing = facing
+    def __init__(self, type_, pos, facing, build_info):
+        self.type = type_
+        self.pos = pos
+        self.facing = facing
 
-		build = build_info.buildings[type_]
-		self.width = build["width"]
-		self.height = build["height"]
+        build = build_info.buildings[type_]
+        self.width = build["width"]
+        self.height = build["height"]
 
-	def __repr__(self):
-		return f"{self.type} {self.pos} {self.facing}"
+        self.resource = {}
 
-	def render(self, surface, blk_sz, viewX, viewY):
-		x, y = self.pos
-		x = (x - viewX) * blk_sz
-		y = (y - viewY) * blk_sz
+    def __repr__(self):
+        return f"{self.type} {self.pos} {self.facing}"
 
-		w = 0
-		h = 0
-		if self.facing == F_RIGHT:
-			w = self.width * blk_sz
-			h = self.height * blk_sz
-		elif self.facing == F_DOWN:
-			w = self.height * blk_sz
-			h = self.width * blk_sz
-			x = x - w + blk_sz
-		elif self.facing == F_LEFT:
-			w = self.width * blk_sz
-			h = self.height * blk_sz
-			x = x - w + blk_sz
-			y = y - h + blk_sz
-		elif self.facing == F_UP:
-			w = self.height * blk_sz
-			h = self.width * blk_sz
-			y = y - h + blk_sz
+    def render(self, surface, blk_sz, viewX, viewY):
+        x, y = self.pos
+        x = (x - viewX) * blk_sz
+        y = (y - viewY) * blk_sz
 
-		pygame.draw.rect(
-			surface,
-			clr.blue,
-			(x, y, w, h, ),
-			blk_sz // 10)
+        w = 0
+        h = 0
+        if self.facing == F_RIGHT:
+            w = self.width * blk_sz
+            h = self.height * blk_sz
+        elif self.facing == F_DOWN:
+            w = self.height * blk_sz
+            h = self.width * blk_sz
+            x = x - w + blk_sz
+        elif self.facing == F_LEFT:
+            w = self.width * blk_sz
+            h = self.height * blk_sz
+            x = x - w + blk_sz
+            y = y - h + blk_sz
+        elif self.facing == F_UP:
+            w = self.height * blk_sz
+            h = self.width * blk_sz
+            y = y - h + blk_sz
+
+        pygame.draw.rect(
+            surface,
+            clr.blue,
+            (x, y, w, h, ),
+            blk_sz // 10)
+
+    def reach_resrc_need(self, resource_need):
+        for r, c in resource_need.items():
+            if r not in self.resource:
+                self.resource[r] = 0
+            if self.resource[r] != c:
+                return False
+        return True
+
+    def put_resrc(self, inventory, resource_need):
+        resrc_put = {}
+        for r, c in resource_need.items():
+            if r not in self.resource:
+                self.resource[r] = 0
+            if self.resource[r] != c:
+                resource_add = c - self.resource[r]
+                invtory_have = inventory.count_item(r)
+
+                if invtory_have >= resource_add:
+                    self.resource[r] = c
+                    resrc_put[r] = resource_add
+                else:
+                    self.resource[r] += invtory_have
+                    resrc_put[r] = invtory_have
+        return resrc_put
+
+    @staticmethod
+    def parse(string, build_info):
+        type_, pos, facing, resrouce, progress = string.split()
+
+        pos = [int(i) for i in pos.split(",")]
+        facing = int(facing)
+
+        return BluePrint(type_, pos, facing, build_info)
+
+class Building:
+    def __init__(self, type_, pos, facing, build_info):
+        self.type = type_
+        self.facing = facing
+
+        build = build_info.buildings[type_]
+
+        src = build_info.buildings[type_]["building_src"]
+        self.hitbox_lt = pos
+        self.width = build["width"]
+        self.height = build["height"]
+
+        if self.facing == F_UP:
+            self.width, self.height = self.height, self.width
+
+            self.src = pygame.transform.rotate(src, 90)
+            self.hitbox_lt = (pos[0], pos[1] - self.height + 1)
+
+        elif self.facing == F_DOWN:
+            self.width, self.height = self.height, self.width
+
+            self.src = pygame.transform.rotate(src, -90)
+            self.hitbox_lt = (pos[0] - self.width + 1, pos[1])
+
+        elif self.facing == F_RIGHT:
+            self.src = src
+
+        if self.facing == F_LEFT:
+            self.src = pygame.transform.rotate(src, 180)
+            self.hitbox_lt = (
+                pos[0] - self.width + 1,
+                pos[1] - self.height + 1)
+
+        self.hitbox_rd = (
+            self.hitbox_lt[0] + self.width,
+            self.hitbox_lt[1] + self.height)
+
+        self.src_sized = {}
+
+    def click(self, pos, viewX, viewY, blk_sz):
+        x, y = pos
+
+        if x < (self.hitbox_lt[0] - viewX) * blk_sz:
+            return False
+        if x > (self.hitbox_rd[0] - viewX) * blk_sz:
+            return False
+
+        if y < (self.hitbox_lt[1] - viewY) * blk_sz:
+            return False
+        if y > (self.hitbox_rd[1] - viewY) * blk_sz:
+            return False
+
+        return True
+
+    def render(self, surface, blk_sz, viewX, viewY):
+        x = (self.hitbox_lt[0] - viewX) * blk_sz
+        y = (self.hitbox_lt[1] - viewY) * blk_sz
+
+        if blk_sz not in self.src_sized:
+            self.src_sized[blk_sz] = pygame.transform.scale(self.src,
+                (self.width * blk_sz, self.height * blk_sz))
+
+        surface.blit(self.src_sized[blk_sz], (x, y))
+
+    @staticmethod
+    def from_blueprint(blueprint, build_info):
+        return Building(
+            blueprint.type,
+            blueprint.pos,
+            blueprint.facing,
+            build_info
+            )
+
+    @staticmethod
+    def parse(string, build_info):
+        type_, pos, facing, invertory = string.split()
+
+        pos = [int(i) for i in pos.split(",")]
+
+        facing = int(facing)
+
+        # inventory = Inventory.parse(invertory, limit=1)
+
+        return Building(type_, pos, facing, build_info)
 
 class BuildingController:
-	def __init__(self, screen_info, build_info):
-		self.screen = screen_info
-		self.build_info = build_info
-		self.surface = None
+    def __init__(self, screen_info, build_info):
+        self.screen = screen_info
+        self.build_info = build_info
+        self.surface = None
 
-		self.buildings = {}
-		self.blueprints = []
+        self.buildings = {}
+        self.blueprints = {}
 
-	def change_surface(self, surface):
-		self.surface = surface
+        self.occupied = {}
 
-	def load(self, mappath):
-		path = os.getcwd()
-		path = os.path.join(path, mappath, "building.txt")
+    def change_surface(self, surface):
+        self.surface = surface
 
-		if not os.path.isfile(path):
-			raise Exception(f"path {path} not exist")
+    def check_overlap(self, blocks, pos):
+        blk_sz = self.screen.block_size
+        for block in blocks:
+            x = block[0] + pos[0] // blk_sz
+            y = block[1] + pos[1] // blk_sz
 
-	def new_blueprint(self, blueprint):
-		self.blueprints.append(blueprint)
+            try:
+                if x in self.occupied[y]:
+                    return True
+            except:
+                pass
+        return False
 
-	def render(self, viewX, viewY):
-		blk_sz = self.screen.block_size
-		for blueprint in self.blueprints:
-			blueprint.render(self.surface, blk_sz, viewX, viewY)
+    def load(self, mappath):
+        path = os.getcwd()
+        path = os.path.join(path, mappath, "building.txt")
+
+        if not os.path.isfile(path):
+            raise Exception(f"path {path} not exist")
+
+        with open(path) as file:
+            read = file.read()
+        buildings = read.split("\n")
+
+        for i in buildings:
+            if i.find("bd-") >= 0:
+                building = Building.parse(i[i.find("bd-") + 3:], self.build_info)
+                self.buildings[id(building)] = building
+            elif i.find("bp-") >= 0:
+                blueprint = BluePrint.parse(i[i.find("bp-") + 3:], self.build_info)
+                self.blueprints[id(blueprint)] = blueprint
+
+    def new_blueprint(self, blueprint):
+        self.blueprints[id(blueprint)] = blueprint
+
+    def finish_blueprint(self, blueprint_id):
+        blueprint = self.blueprints[blueprint_id]
+
+        building = Building.from_blueprint(blueprint, self.build_info)
+        self.buildings[id(building)] = building
+
+        self.blueprints.pop(blueprint_id)
+
+        hitbox_lt = building.hitbox_lt
+        hitbox_rd = building.hitbox_rd
+
+        for col in range(hitbox_lt[1], hitbox_rd[1]):
+            for row in range(hitbox_lt[0], hitbox_rd[0]):
+                if col not in self.occupied:
+                    self.occupied[col] = set([])
+
+                self.occupied[col].add(row)
+
+    def render(self, viewX, viewY):
+        blk_sz = self.screen.block_size
+        for blueprint in self.blueprints.values():
+            blueprint.render(self.surface, blk_sz, viewX, viewY)
+
+        for building in self.buildings.values():
+            building.render(self.surface, blk_sz, viewX, viewY)
+
 
 
 
