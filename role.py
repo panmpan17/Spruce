@@ -14,6 +14,11 @@ class WORK:
     MOVE = "working_move"
     PRODUCE = "working_produce"
     OPEN_STORAGE = "working_open_storage"
+    GO_FARM = "working_open_farm"
+    CAPTURE_ANIMAL = "working_capture_animal"
+    BRING_ANIMAL = "working_bring_animal_to_farm"
+    CLEAR_ITEM = "working_go_storage_clear_unforced_item"
+    CLEAR_BUILD_INV = "working_clear_building_inventory"
 
 class InventoryItem:
     def __init__(self, type_, count, forced):
@@ -53,17 +58,18 @@ class Inventory:
         self.limit = limit
 
     def __len__(self):
-        if isinstance(self.limt, int):
-            return self.limit - self.slots.count(None)
-        else:
-            return -1
+        return len(self.slots)
 
     def __getitem__(self, key):
         return self.slots[key]
 
+    def __repr__(self):
+        return str(self.slots)
+
     def add(self, type_, count):
         type_slot = []
         empty_slots = []
+        extend_slots = []
         for i, slot in enumerate(self.slots):
             if slot == None:
                 empty_slots.append(i)
@@ -71,19 +77,7 @@ class Inventory:
                 type_slot.append(i)
 
         if len(empty_slots) == len(self.slots):
-            time = math.ceil(count / 50)
-
-            if time > len(empty_slots):
-                for i in empty_slots:
-                    self.slots[i] = InventoryItem(type_, 50, False)
-                return count - (50 * len(empty_slots))
-            else:
-                i = -1
-                for i in range(time - 1):
-                    self.slots[empty_slots[i]] = InventoryItem(type_, 50, False)
-
-                self.slots[empty_slots[i + 1]] = InventoryItem(type_, count - (50 * (time - 1)), False)
-                return 0
+            count = self.item_empty_slot(type_, count, empty_slots)
         elif len(type_slot) != 0:
             for i in type_slot:
                 if count + self.slots[i].count <= 50:
@@ -94,21 +88,35 @@ class Inventory:
                     count -= (50 - self.slots[i].count)
                     self.slots[i].count = 50
 
-        if count > 0:
-            time = math.ceil(count / 50)
+        if count > 0 and len(empty_slots) > 0:
+            count = self.item_empty_slot(type_, count, empty_slots)
 
-            if time > len(empty_slots):
-                for i in empty_slots:
-                    self.slots[i] = InventoryItem(type_, 50, False)
-                return count - (50 * len(empty_slots))
-            else:
-                i = -1
-                for i in range(time - 1):
-                    self.slots[empty_slots[i]] = InventoryItem(type_, 50, False)
+        # if inventory have no limit, add more slots
+        if count > 0 and self.limit == -1:
+            empty_slots = []
+            start_index = len(self.slots)
+            for i in range(math.ceil(count / 50)):
+                self.slots.append(None)
+                empty_slots.append(start_index + i)
 
-                self.slots[empty_slots[i + 1]] = InventoryItem(type_, count - (50 * (time - 1)), False)
-                return 0
+            count = self.item_empty_slot(type_, count, empty_slots)
+            return count
         else:
+            return count
+
+    def item_empty_slot(self, type_, count, empty_slots):
+        time = math.ceil(count / 50)
+
+        if time > len(empty_slots):
+            for i in empty_slots:
+                self.slots[i] = InventoryItem(type_, 50, False)
+            return count - (50 * len(empty_slots))
+        else:
+            i = -1
+            for i in range(time - 1):
+                self.slots[empty_slots[i]] = InventoryItem(type_, 50, False)
+
+            self.slots[empty_slots[i + 1]] = InventoryItem(type_, count - (50 * (time - 1)), False)
             return 0
 
     def take(self, type_, count):
@@ -117,13 +125,22 @@ class Inventory:
             if slot == None:
                 continue
             if slot.type == type_:
-                if slot.count <= count:
-                    slot_empty.append(i)
-                    count -= slot.count
+                if slot.forced:
+                    if slot.count - 1 < count:
+                        count -= slot.count - 1
+                        slot.count = 1
+                    else:
+                        slot.count -= count
+                        count = 0
+                        break
                 else:
-                    slot.count -= count
-                    count = 0
-                    break
+                    if slot.count <= count:
+                        slot_empty.append(i)
+                        count -= slot.count
+                    else:
+                        slot.count -= count
+                        count = 0
+                        break
 
         if len(slot_empty) > 0:
             for i in slot_empty:
@@ -139,10 +156,55 @@ class Inventory:
                 c += slot.count
         return c
 
+    def set_item_forced(self, item_index, forced):
+        if self.slots[item_index] == None:
+            return
+        self.slots[item_index].forced = forced
+
     def check_item_forced(self, item_index):
         if self.slots[item_index] == None:
-            return False
+            return None
         return self.slots[item_index].forced
+
+    def clear_item_index(self, item_index):
+        if self.slots[item_index] == None:
+            return None
+        type_ = self.slots[item_index].type
+        count = self.slots[item_index].count
+        self.slots[item_index] = None
+        return type_, count
+
+    def clear_all_item(self, forced):
+        count = {}
+        slot_not_empty = []
+        for i, slot in enumerate(self.slots):
+            if slot == None:
+                continue
+            if (not forced) and slot.forced == True:
+                continue
+
+            if slot.type not in count:
+                count[slot.type] = 0
+            count[slot.type] += slot.count
+            slot_not_empty.append(i)
+
+        for slot in slot_not_empty:
+            self.slots[slot] = None
+        return count
+
+    def transfer(self, inventory, forced=False):
+        empty_slots = []
+        for i, slot in enumerate(self.slots):
+            if slot == None:
+                continue
+            if forced and slot.forced:
+                continue
+            count = inventory.add(slot.type, slot.count)
+            if count > 0:
+                slot.count = count
+            else:
+                empty_slots.append(i)
+            self.slots[i] = None
 
     @staticmethod
     def parse(string, limit=None):
@@ -167,10 +229,14 @@ class Inventory:
         else:
             return Inventory(slots=slots, limit=limit)
 
+    @staticmethod
+    def empty_infinite():
+        return Inventory(slots=[], limit=-1)
+
 class Working:
-    def __init__(self, type_, work_with_id):
+    def __init__(self, type_, work_args):
         self.type = type_
-        self.work_with_id = work_with_id
+        self.args = work_args
 
         self.progress = 0
 
@@ -178,7 +244,7 @@ class Working:
             self.progress_need = 1
 
     def __repr__(self):
-        return f"{self.type} {self.work_with_id}"
+        return f"{self.type} {self.args}"
 
     def parse(self):
         pass
@@ -200,16 +266,18 @@ class Role:
         x, y = pos
         step = self.step * tick_interval
         if self.x != x:
-            if math.fabs(x - self.x) < step:
+            if math.fabs(x - self.x) <= step:
                 self.x = x
+                step -= math.fabs(x - self.x)
             else:
                 self.x += Role.direction(x, self.x) * step
-        elif self.y != y:
+                step = 0
+        if step > 0 and self.y != y:
             if math.fabs(y - self.y) < step:
                 self.y = y
             else:
                 self.y += Role.direction(y, self.y) * step
-        else:
+        if self.x == x and self.y == y:
             return True
         return False
 
@@ -219,32 +287,73 @@ class Role:
             return 1
         return -1
 
-
 class RoleController:
-    def __init__(self, screen_info, build_info):
+    def __init__(self, screen_info, images, build_info):
         self.screen = screen_info
+        self.images = images
         self.build_info = build_info
         self.evnCtlr = None
         self.buildCtlr = None
+        self.animalCtlr = None
         self.surface = None
 
         self.roles = {}
-        self.role_img_src = None
         self.role_textures = {}
 
-    def setUpCtrl(self, evnCtlr, buildCtlr, UICtlr):
+    def setUpCtrl(self, evnCtlr, animalCtlr, buildCtlr, UICtlr):
         self.evnCtlr = evnCtlr
+        self.animalCtlr = animalCtlr
         self.buildCtlr = buildCtlr
         self.UICtlr = UICtlr
 
     def change_surface(self, surface):
         self.surface = surface
 
-    def new_work(self, role_id, type_, work_with_id):
-        self.roles[role_id].working = Working(type_, work_with_id)
+    def new_work(self, role_id, type_, work_args):
+        work = self.roles[role_id].working
+        if work != None:
+            if work.type == WORK.BRING_ANIMAL:
+                animal = self.animalCtlr.animals[work.args["animal"]]
+                animal.tamed = False
+
+        self.roles[role_id].working = Working(type_, work_args)
+
+    def add_item(self, role_id, type_, count):
+        return self.roles[role_id].inventory.add(type_, count)
+
+    def set_item_forced(self, role_id, item_index, forced):
+        self.roles[role_id].inventory.set_item_forced(item_index, forced)
 
     def check_item_forced(self, role_id, item_index):
         return self.roles[role_id].inventory.check_item_forced(item_index)
+
+    def clear_item_index(self, role_id, item_index):
+        return self.roles[role_id].inventory.clear_item_index(item_index)
+
+    def clear_all_item(self, role_id, forced=True):
+        return self.roles[role_id].inventory.clear_all_item(forced)
+
+    def set_all_item_forced(self, role_id, forced=True):
+        for slot in self.roles[role_id].inventory.slots:
+            if slot == None:
+                continue
+
+            slot.forced = forced
+
+    def click(self, x, y, viewX, viewY):
+        blk_sz = self.screen.block_size
+        for role in self.roles.values():
+            if x < (role.x - viewX) * blk_sz:
+                continue
+            if x > (role.x - viewX) * blk_sz + blk_sz:
+                continue
+
+            if y < (role.y - viewY) * blk_sz:
+                continue
+            if y > (role.y - viewY) * blk_sz + blk_sz:
+                continue
+            return role.id
+        return False
 
     def load(self, mappath):
         path = os.getcwd()
@@ -270,16 +379,14 @@ class RoleController:
 
             self.roles[id_] = Role(id_, x, y, None, inventory)
 
-        self.role_img_src = pygame.image.load("texture/role.png")
-
     def tick_load(self, tick_interval):
         for role in self.roles.values():
             if role.working != None:
                 if role.working.type == WORK.CHOP:
-                    right_posistion = role.move(role.working.work_with_id, tick_interval)
+                    right_posistion = role.move(role.working.args["id"], tick_interval)
                     if right_posistion:
                         if int(role.working.progress) == role.working.progress_need:
-                            self.evnCtlr.change_map(role.working.work_with_id, "0")
+                            self.evnCtlr.change_map(role.working.args["id"], "0")
 
                             role.inventory.add("7", randint(10, 30))
                             role.working = None
@@ -287,8 +394,8 @@ class RoleController:
                             role.working.progress += tick_interval
 
                 elif role.working.type == WORK.BUILD:
-                    blueprint = self.buildCtlr.blueprints[role.working.work_with_id]
-                    right_posistion = role.move(blueprint.pos, tick_interval)
+                    blueprint = self.buildCtlr.blueprints[role.working.args["id"]]
+                    right_posistion = role.move(blueprint.hitbox_lt, tick_interval)
                     resource_need = self.build_info.resource_need[blueprint.type]
 
                     if right_posistion:
@@ -310,15 +417,55 @@ class RoleController:
                             role.working = None
 
                 elif role.working.type == WORK.OPEN_STORAGE:
-                    building = self.buildCtlr.buildings[role.working.work_with_id]
+                    building = self.buildCtlr.buildings[role.working.args["id"]]
                     right_posistion = role.move(building.hitbox_lt, tick_interval)
 
                     if right_posistion:
                         self.UICtlr.open_building_ui(
                             building.type,
-                            role.working.work_with_id,
+                            role.working.args["id"],
                             role.id
                             )
+                        role.working = None
+
+                elif role.working.type == WORK.CLEAR_ITEM:
+                    storage = self.buildCtlr.buildings[role.working.args["storage"]]
+                    right_posistion = role.move(storage.hitbox_lt, tick_interval)
+
+                    if right_posistion:
+                        role.inventory.transfer(storage.inventory, forced=True)
+                        self.working = None
+
+                elif role.working.type == WORK.CLEAR_BUILD_INV:
+                    building = self.buildCtlr.buildings[role.working.args["build"]]
+                    right_posistion = role.move(building.hitbox_lt, tick_interval)
+                    next_ = role.working.args["next"]
+
+                    if right_posistion:
+                        building.inventory.transfer(role.inventory)
+                        self.new_work(role.id, next_["type"], next_)
+
+                elif role.working.type == WORK.CAPTURE_ANIMAL:
+                    animal = self.animalCtlr.animals[role.working.args["animal"]]
+                    right_posistion = role.move((animal.x, animal.y), tick_interval)
+
+                    if right_posistion:
+                        animal.tamed = True
+                        self.new_work(role.id, WORK.BRING_ANIMAL, role.working.args)
+
+                elif role.working.type == WORK.BRING_ANIMAL:
+                    farm = self.buildCtlr.buildings[role.working.args["farm"]]
+                    animal = self.animalCtlr.animals[role.working.args["animal"]]
+                    right_posistion = role.move(farm.hitbox_lt, tick_interval)
+                    animal.x = role.x
+                    animal.y = role.y
+
+                    if right_posistion:
+                        if animal.type not in farm.animals:
+                            farm.animals[animal.type] = 0
+                        farm.animals[animal.type] += 1
+
+                        self.animalCtlr.animals.pop(role.working.args["animal"])
                         role.working = None
 
     def render(self, viewX, viewY):
@@ -332,7 +479,7 @@ class RoleController:
 
                     if blk_sz not in self.role_textures:
                         self.role_textures[blk_sz] = pygame.transform.scale(
-                            self.role_img_src,
+                            self.images["texture/role.png"],
                             (blk_sz, blk_sz),
                             )
                     self.surface.blit(self.role_textures[blk_sz], (x, y))

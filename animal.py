@@ -1,5 +1,6 @@
 import pygame
 import os
+import json
 from color import clr
 
 from random import randint
@@ -15,6 +16,37 @@ UP = 3
 DOWN = 4
 
 ANIMAL_ROLE_DISTANCE = 6
+
+class AnimalInfo:
+    def __init__(self):
+        self.infos = {}
+        self.drops = {}
+
+    def load(self, file, images):
+        path = os.getcwd()
+        with open(os.path.join(path, file)) as file:
+            read = file.read()
+        info = json.loads(read)
+
+        texture_dir = os.path.join("texture", "animal")
+
+        for id_, animal in info.items():
+            self.infos[id_] = {}
+            self.infos[id_]["name"] = animal["name"]
+            self.infos[id_]["step"] = animal["step"]
+            self.infos[id_]["src"] = images[f"{texture_dir}/{animal['src']}"]
+
+            self.drops[id_] = {}
+            self.drops[id_]["wild"] = animal["wild"]
+            self.drops[id_]["slaught"] = animal["slaught"]
+            self.drops[id_]["farm"] = animal["farm"]
+
+    def count_drops(self, animal_type, count):
+        items = {}
+        for drops in self.drops[animal_type]["farm"]:
+            min_, max_ = drops["min"], drops["max"]
+            items[drops["item"]] = sum([randint(min_, max_) for i in range(count)])
+        return items
 
 class AnimalBasic:
     def __init__(self, x, y, tamed, type_=None):
@@ -50,7 +82,7 @@ class AnimalBasic:
 
     def decideDirection(self):
         self.direction = randint(1, 4)
-        self.steps = randint(10, 20)
+        self.steps = randint(5, 10) * self.step
 
     def changeDriection(self):
         self.direction = randint(1, 4)
@@ -71,13 +103,19 @@ class Chicken(AnimalBasic):
         self.step = 2
 
 class AnimalController:
-    def __init__(self, screen_info):
+    def __init__(self, screen_info, animal_info, images):
         self.screen = screen_info
+        self.animal_info = animal_info
         self.surface = None
         self.envCtlr = None
         self.roleCtlr = None
+        self.images = images
 
         self.animals = []
+        self.textures = {}
+
+        for animal_type in animal_info.infos.keys():
+            self.textures[animal_type] = {}
 
     def setUpCtlr(self, envCtlr, roleCtlr):
         self.envCtlr = envCtlr
@@ -85,10 +123,6 @@ class AnimalController:
 
     def change_surface(self, surface):
         self.surface = surface
-        # self.change_screen_size()
-
-    # def change_screen_size(self):
-    #     pass
 
     def load(self, mappath):
         path = os.getcwd()
@@ -118,19 +152,13 @@ class AnimalController:
                 type_ = Chicken
             self.animals.append(type_(x, y, tamed))
 
-        self.cow_img_src = pygame.image.load("texture/cow.png")
-        self.cow_textures = {}
-
-        self.sheep_img_src = pygame.image.load("texture/sheep.png")
-        self.sheep_textures = {}
-
-        self.chicken_img_src = pygame.image.load("texture/chicken.png")
-        self.chicken_textures = {}
-
     def tick_load(self, tick_interval):
         # tick_interval default is 0.1
         # move = 10 * tick_interval
         for animal in self.animals:
+            if animal.tamed == True:
+                continue
+
             if not animal.direction:
                 if animal.rest_time > 0:
                     animal.rest_time -= 1
@@ -236,24 +264,10 @@ class AnimalController:
                     x = (animal.x - viewX) * blk_sz
                     y = (animal.y - viewY) * blk_sz
 
-                    if animal.type == COW:
-                        if blk_sz not in self.cow_textures:
-                            self.cow_textures[blk_sz] = pygame.transform.scale(
-                                self.cow_img_src,
-                                (blk_sz, blk_sz),
-                                )
-                        self.surface.blit(self.cow_textures[blk_sz], (x, y))
-                    elif animal.type == SHEEP:
-                        if blk_sz not in self.sheep_textures:
-                            self.sheep_textures[blk_sz] = pygame.transform.scale(
-                                self.sheep_img_src,
-                                (blk_sz, blk_sz),
-                                )
-                        self.surface.blit(self.sheep_textures[blk_sz], (x, y))
-                    elif animal.type == CHICKEN:
-                        if blk_sz not in self.chicken_textures:
-                            self.chicken_textures[blk_sz] = pygame.transform.scale(
-                                self.chicken_img_src,
-                                (blk_sz, blk_sz),
-                                )
-                        self.surface.blit(self.chicken_textures[blk_sz], (x, y))
+                    if blk_sz not in self.textures[animal.type]:
+                        self.textures[animal.type][blk_sz] = pygame.transform.scale(
+                            self.animal_info.infos[animal.type]["src"],
+                            (blk_sz, blk_sz),
+                            )
+
+                    self.surface.blit(self.textures[animal.type][blk_sz], (x, y))

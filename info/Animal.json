@@ -1,0 +1,115 @@
+{
+	"1": {
+		"name": "Cow",
+		"step": 6,
+		"src": "cow.png",
+		"wild": [
+			{
+				"item": "leather",
+				"min": 9,
+				"max": 11
+			},
+			{
+				"item": "meat",
+				"min": 10,
+				"max": 12
+			}
+		],
+		"slaught": [
+			{
+				"item": "leather",
+				"min": 10,
+				"max": 12
+			},
+			{
+				"item": "meat",
+				"min": 11,
+				"max": 13
+			}
+		],
+		"farm": [
+			{
+				"item": "milk",
+				"min": 4,
+				"max": 6
+			}
+		]
+	},
+	"2": {
+		"name": "Sheep",
+		"step": 4,
+		"src": "sheep.png",
+		"wild": [
+			{
+				"item": "wool",
+				"min": 1,
+				"max": 3
+			},
+			{
+				"item": "meat",
+				"min": 5,
+				"max": 6
+			}
+		],
+		"slaught": [
+			{
+				"item": "wool",
+				"min": 2,
+				"max": 3
+			},
+			{
+				"item": "meat",
+				"min": 6,
+				"max": 8
+			}
+		],
+		"farm": [
+			{
+				"item": "wool",
+				"min": 1,
+				"max": 2
+			},
+			{
+				"item": "milk",
+				"min": 1,
+				"max": 3
+			}
+		]
+	},
+	"3": {
+		"name": "Chicken",
+		"step": 2,
+		"src": "chicken.png",
+		"wild": [
+			{
+				"item": "feather",
+				"min": 8,
+				"max": 10
+			},
+			{
+				"item": "meat",
+				"min": 1,
+				"max": 2
+			}
+		],
+		"slaught": [
+			{
+				"item": "feather",
+				"min": 8,
+				"max": 10
+			},
+			{
+				"item": "meat",
+				"min": 2,
+				"max": 3
+			}
+		],
+		"farm": [
+			{
+				"item": "egg",
+				"min": 1,
+				"max": 1
+			}
+		]
+	}
+}

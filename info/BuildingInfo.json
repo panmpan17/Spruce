@@ -1,0 +1,36 @@
+{
+	"1": {
+		"name": "Storage",
+		"building_src": "storage.png",
+		"icon_src": "storage.png",
+		"width": 2,
+		"height": 3,
+		"build_time": 1,
+		"build_need": {
+			"7": 100
+		}
+	},
+	"2": {
+		"name": "Farm",
+		"building_src": "farm.png",
+		"icon_src": "farm.png",
+		"width": 5,
+		"height": 5,
+		"build_time": 1,
+		"build_need": {
+			"7": 500
+		}
+	},
+	"3": {
+		"name": "Mine",
+		"building_src": "mine.png",
+		"icon_src": "mine.png",
+		"width": 3,
+		"height": 3,
+		"build_time": 1,
+		"build_need": {
+			"7": 300
+		}
+	}
+
+}

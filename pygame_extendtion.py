@@ -1,3 +1,4 @@
+import os
 import pygame
 
 def count_distance(x, y, x2, y2):
@@ -25,9 +26,25 @@ class ScreenInfo:
         self.width_blocks = int(self.width / block_size)
         self.height_blocks = int(self.height / block_size)
 
-class MyPygameEvent:
-	VBUPDATE = pygame.event.Event(32, {}) # "view_box_update"
+class ImageLoader:
+    def __init__(self):
+        self.images = {}
 
+    def __getitem__(self, path):
+        return self.images[path]
+
+    def load_single(self, path, name=None):
+        if name == None:
+            name = path
+
+        self.images[path] = pygame.image.load(path)
+
+    def load_directory(self, path):
+        for dirname, _, filenames in os.walk(path):
+            for filename in filenames:
+                if filename.endswith(".png"):
+                    file = os.path.join(dirname, filename)
+                    self.images[file] = pygame.image.load(file)
 
 class Font:
     def __init__(self):

@@ -25,10 +25,6 @@ class Layer:
 
         self.screen = screen
 
-        if type_ == GROUND:
-            self.image_source = pygame.image.load("texture/grass.png")
-            self.texture = "grass"
-
     def check_overlap(self, blocks, pos):
         blk_sz = self.screen.block_size
         for block in blocks:
@@ -39,7 +35,7 @@ class Layer:
                 return True
         return False
 
-    def load(self, layerfile):
+    def load(self, layerfile, images):
         with open(layerfile) as file:
             read = file.read()
         info = read.split("\n")
@@ -66,7 +62,7 @@ class Layer:
         self.max_y = len(self.map)
 
         if self.type == GROUND:
-            self.image_source = pygame.image.load("texture/grass.png")
+            self.image_source = images["texture/grass.png"]
             self.texture = "grass"
 
     def change_screen_size(self):
@@ -131,8 +127,9 @@ class Layer:
             pygame.draw.rect(surface, clr.black, (0, 0, width, blk_sz))
 
 class EnviromentController:
-    def __init__(self, screen_info):
+    def __init__(self, screen_info, images):
         self.screen = screen_info
+        self.images = images
         self.surface = None
 
         self.ground = None
@@ -162,7 +159,7 @@ class EnviromentController:
             raise Exception(f"path {path} not exist")
         # load diffrent layer
         self.ground = Layer(self.screen)
-        self.ground.load(path)
+        self.ground.load(path, self.images)
 
         self.present_layer = self.ground
 
@@ -176,8 +173,28 @@ class EnviromentController:
             return True
         return False
 
+    def click(self, x, y, viewX, viewY):
+        blk_sz = self.screen.block_size
+        col = (y // blk_sz) + viewY
+
+        if col in self.present_layer.draw_index:
+            for row in self.present_layer.draw_index[col]:
+                if x < (row - viewX) * blk_sz:
+                    continue
+                if x > (row - viewX) * blk_sz + blk_sz:
+                    continue
+
+                if y < (col - viewY) * blk_sz:
+                    continue
+                if y > (col - viewY) * blk_sz + blk_sz:
+                    continue
+
+                block = self.present_layer.map[col][row]
+                return block, row, col
+        return False
+
     def render(self, viewX, viewY):
-        self.ground.render(self.surface, viewX, viewY)
+        self.present_layer.render(self.surface, viewX, viewY)
 
     def stop(self):
         # delete all extend blackground

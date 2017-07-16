@@ -8,9 +8,9 @@ from platform import system as osSystem
 
 from pygame_extendtion import *
 from enviroment import EnviromentController
-from animal import AnimalController
+from animal import AnimalController, AnimalInfo
 from role import RoleController
-from ui import UIController
+from ui import UIController, ItemInfo
 from building import BuildingController, BuildingInfo
 
 from threading import Thread
@@ -38,15 +38,39 @@ class App:
         self.block_size_level = BLK_SZ_LEVELS.index(BLOCK_SIZE)
 
         self.screen = ScreenInfo(block_size=BLOCK_SIZE, width=WIDTH, height=HEIGHT)
+        self.images = ImageLoader()
+        self.images.load_directory("texture")
+
         self.build_info = BuildingInfo()
-        self.build_info.load("BuildingInfo.json")
+        self.build_info.load("info/BuildingInfo.json", self.images)
 
-        self.envCtlr = EnviromentController(self.screen)
-        self.animalCtlr = AnimalController(self.screen)
-        self.roleCtlr = RoleController(self.screen, self.build_info)
-        self.buildCtlr = BuildingController(self.screen, self.build_info)
+        self.items_info = ItemInfo()
+        self.items_info.load("info/ItemInfo.json", self.images)
 
-        self.UICtlr = UIController(self.screen, self.build_info)
+        self.animals_info = AnimalInfo()
+        self.animals_info.load("info/Animal.json", self.images)
+
+        self.envCtlr = EnviromentController(
+            self.screen,
+            self.images)
+        self.animalCtlr = AnimalController(
+            self.screen,
+            self.animals_info,
+            self.images)
+        self.roleCtlr = RoleController(
+            self.screen,
+            self.images,
+            self.build_info)
+        self.buildCtlr = BuildingController(
+            self.screen,
+            self.images,
+            self.build_info,
+            self.items_info,
+            self.animals_info)
+        self.UICtlr = UIController(
+            self.screen,
+            self.build_info,
+            self.items_info)
 
         self.GameEngine = None
         self.STOP = False
@@ -63,6 +87,7 @@ class App:
 
         self.roleCtlr.setUpCtrl(
             self.envCtlr,
+            self.animalCtlr,
             self.buildCtlr,
             self.UICtlr
             )
@@ -70,7 +95,8 @@ class App:
         self.UICtlr.setUpCtlr(
             self.envCtlr,
             self.roleCtlr,
-            self.buildCtlr
+            self.buildCtlr,
+            self.animalCtlr,
             )
 
     def zoom_in(self):
@@ -92,6 +118,7 @@ class App:
         while not self.STOP:
             self.animalCtlr.tick_load(tick_interval)
             self.roleCtlr.tick_load(tick_interval)
+            self.buildCtlr.tick_load(tick_interval)
             clock.tick(tick)
 
     def set_up(self):
@@ -188,9 +215,9 @@ class App:
                     self.UICtlr.mouse_motion(event.pos)
 
             self.envCtlr.render(viewX, viewY)
+            self.buildCtlr.render(viewX, viewY)
             self.animalCtlr.render(viewX, viewY)
             self.roleCtlr.render(viewX, viewY)
-            self.buildCtlr.render(viewX, viewY)
 
             self.UICtlr.render(viewX, viewY)
             pygame.display.flip()
