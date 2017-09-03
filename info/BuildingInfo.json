@@ -31,6 +31,17 @@
 		"build_need": {
 			"7": 300
 		}
+	},
+	"4": {
+		"name": "Smelter",
+		"building_src": "mine.png",
+		"icon_src": "mine.png",
+		"width": 2,
+		"height": 2,
+		"build_time": 1,
+		"build_need": {
+			"8": 150
+		}
 	}
 
 }

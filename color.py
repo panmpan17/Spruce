@@ -14,6 +14,7 @@ class clr:
     gray = (125, 125, 125)
     brown = (142, 82, 17)
     black_ui_bg = (46, 46, 48)
+    copper = (244, 143, 19)
 
     @staticmethod
     def random(minc=0, maxc=255):

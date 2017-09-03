@@ -17,7 +17,7 @@ from threading import Thread
 from time import sleep
 
 PLATFORM = osSystem()
-WIDTH = 750
+WIDTH = 760
 HEIGHT = 500
 BLOCK_SIZE = 20
 
@@ -85,11 +85,15 @@ class App:
             self.envCtlr,
             self.roleCtlr)
 
-        self.roleCtlr.setUpCtrl(
+        self.roleCtlr.setUpCtlr(
             self.envCtlr,
             self.animalCtlr,
             self.buildCtlr,
             self.UICtlr
+            )
+
+        self.buildCtlr.setUpCtlr(
+            self.envCtlr,
             )
 
         self.UICtlr.setUpCtlr(
@@ -181,20 +185,19 @@ class App:
                     if camera_moved:
                         continue
 
-                    # role movement
-                    if keys[pygame.K_RIGHT]:
-                        self.roleCtlr.roles[1].x += 1
-                    elif keys[pygame.K_LEFT]:
-                        self.roleCtlr.roles[1].x -= 1
-                    if keys[pygame.K_UP]:
-                        self.roleCtlr.roles[1].y -= 1
-                    elif keys[pygame.K_DOWN]:
-                        self.roleCtlr.roles[1].y += 1
-
+                    # building rotate
                     if keys[pygame.K_q]:
                         self.UICtlr.press(pygame.K_q)
                     elif keys[pygame.K_e]:
                         self.UICtlr.press(pygame.K_e)
+
+                    # change envirment
+                    if keys[pygame.K_UP]:
+                        viewX, viewY = self.envCtlr.change_depth(1, viewX, viewY)
+                        self.UICtlr.clear_buttons()
+                    elif keys[pygame.K_DOWN]:
+                        viewX, viewY = self.envCtlr.change_depth(-1, viewX, viewY)
+                        self.UICtlr.clear_buttons()
 
                     # zoom
                     if keys[pygame.K_EQUALS]:

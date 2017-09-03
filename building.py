@@ -60,7 +60,7 @@ class BluePrint:
 
         self.type = type_
 
-        self.hitbox_lt = pos
+        self.hitbox_lt = tuple(pos)
         self.width = build["width"]
         self.height = build["height"]
 
@@ -197,6 +197,7 @@ class Mine:
     DATA_LIST = {
         "depth": int,
         "max_depth": int,
+        "exit": bool,
         }
     @classmethod
     def transfer(cls, building_value):
@@ -226,13 +227,13 @@ class Building:
             for name, value in values.items():
                 self.__setattr__(name, value)
         elif type_ == build_info.MINE:
-            building_value["max_depth"] = 1000
+            building_value["max_depth"] = 10
             self.inherit_data_types, values = Mine.transfer(building_value)
             for name, value in values.items():
                 self.__setattr__(name, value)
 
         src = build_info.buildings[type_]["building_src"]
-        self.hitbox_lt = pos
+        self.hitbox_lt = tuple(pos)
         self.width = build["width"]
         self.height = build["height"]
 
@@ -334,6 +335,8 @@ class Building:
             building_value["animals"] = Farm.animal_str_parse(building_value["animals"])
 
             building_value["animal_info"] = animal_info
+        elif type_ == build_info.MINE:
+            building_value = dict()
 
         return Building(type_,
             pos, 
@@ -354,6 +357,9 @@ class BuildingController:
         self.blueprints = {}
 
         self.occupied = {}
+
+    def setUpCtlr(self, envCtlr):
+        self.envCtlr = envCtlr
 
     def change_surface(self, surface):
         self.surface = surface
@@ -448,15 +454,19 @@ class BuildingController:
                         building.random_tick = 0
 
     def click(self, x, y, viewX, viewY):
-        for blueprint in self.blueprints.values():
-            if blueprint.click((x, y), viewX, viewY, self.screen.block_size):
-                return blueprint
+        if self.envCtlr.present_layer.type == 0:
+            for blueprint in self.blueprints.values():
+                if blueprint.click((x, y), viewX, viewY, self.screen.block_size):
+                    return blueprint
 
-        for building in self.buildings.values():
-            if building.click((x, y), viewX, viewY, self.screen.block_size):
-                return building
+            for building in self.buildings.values():
+                if building.click((x, y), viewX, viewY, self.screen.block_size):
+                    return building
 
     def render(self, viewX, viewY):
+        if self.envCtlr.present_layer.type != 0:
+            return
+
         blk_sz = self.screen.block_size
         for blueprint in self.blueprints.values():
             blueprint.render(self.surface, blk_sz, viewX, viewY)

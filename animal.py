@@ -78,7 +78,8 @@ class AnimalBasic:
 
     def rest(self, tick_interval):
         self.direction = None
-        self.rest_time = randint(2 / tick_interval, 3 / tick_interval)
+        s =  int(0.5 / tick_interval)
+        self.rest_time = randint(s, 3 / tick_interval)
 
     def decideDirection(self):
         self.direction = randint(1, 4)
@@ -256,6 +257,9 @@ class AnimalController:
                 animal.move(tick_interval)
 
     def render(self, viewX, viewY):
+        if self.envCtlr.present_layer.type != 0:
+            return
+
         blk_sz = self.screen.block_size
 
         for animal in self.animals:

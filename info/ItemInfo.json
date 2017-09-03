@@ -29,29 +29,41 @@
     },
     "8":{
         "name": "Stone",
-        "src": "stone.png"
+        "src": "pebble.png"
     },
     "9":{
         "name": "Dirt",
         "src": "dirt.png"
     },
     "10":{
-        "name": "Iron",
-        "src": "iron.png"
-    },
-    "11":{
         "name": "Copper",
         "src": "copper.png"
+    },
+    "11":{
+        "name": "Iron",
+        "src": "iron.png"
     },
     "12":{
         "name": "Coal",
         "src": "coal.png"
     },
     "13":{
+        "name": "Copper Ore",
+        "src": "copper_ore.png"
+    },
+    "14":{
+        "name": "Iron Ore",
+        "src": "iron_ore.png"
+    },
+    "15":{
+        "name": "Gold Ore",
+        "src": "gold_ore.png"
+    },
+    "16":{
         "name": "Steel",
         "src": "steel.png"
     },
-    "14":{
+    "17":{
         "name": "Tree sapling",
         "src": "tree_sapling.png"
     }

@@ -5,6 +5,7 @@ import math
 
 from random import randint
 from pygame_extendtion import *
+from enviroment import AIR, ROCK, TREE, COAL, COPPER, IRON, GOLD
 
 
 class WORK:
@@ -19,6 +20,8 @@ class WORK:
     BRING_ANIMAL = "working_bring_animal_to_farm"
     CLEAR_ITEM = "working_go_storage_clear_unforced_item"
     CLEAR_BUILD_INV = "working_clear_building_inventory"
+    GO_MINE = "working_go_mine"
+    MINE_BLOCK = "working_mining"
 
 class InventoryItem:
     def __init__(self, type_, count, forced):
@@ -242,6 +245,8 @@ class Working:
 
         if type_ == WORK.CHOP:
             self.progress_need = 1
+        elif type_ == WORK.MINE_BLOCK:
+            self.progress_need = 1
 
     def __repr__(self):
         return f"{self.type} {self.args}"
@@ -250,10 +255,11 @@ class Working:
         pass
 
 class Role:
-    def __init__(self, id_, x, y, working, inventory):
+    def __init__(self, id_, x, y, location, working, inventory):
         self.id = id_
         self.x = x
         self.y = y
+        self.location = location
         self.working = working
         self.inventory = inventory
 
@@ -300,7 +306,10 @@ class RoleController:
         self.roles = {}
         self.role_textures = {}
 
-    def setUpCtrl(self, evnCtlr, animalCtlr, buildCtlr, UICtlr):
+    def __getitem__(self, id_):
+        return self.roles[id_]
+
+    def setUpCtlr(self, evnCtlr, animalCtlr, buildCtlr, UICtlr):
         self.evnCtlr = evnCtlr
         self.animalCtlr = animalCtlr
         self.buildCtlr = buildCtlr
@@ -368,25 +377,29 @@ class RoleController:
 
         for role_info in roles_list:
             role_info = role_info.split()
-            inventory_info = role_info[-1]
-            working_info = role_info[-2]
-            id_, x, y = [int(i) for i in role_info[:-2]]
+            id_ = role_info[0]
+            x, y = role_info[1].split(",")
+            x, y = int(x), int(y)
+            location = int(role_info[2])
+            working_info = role_info[3]
+            inventory_info = role_info[4]
 
             inventory = Inventory.parse(inventory_info)
 
             # working = Working()
             # working.parse(working_info)
 
-            self.roles[id_] = Role(id_, x, y, None, inventory)
+            self.roles[id_] = Role(id_, x, y, location, None, inventory)
 
     def tick_load(self, tick_interval):
         for role in self.roles.values():
             if role.working != None:
                 if role.working.type == WORK.CHOP:
-                    right_posistion = role.move(role.working.args["id"], tick_interval)
-                    if right_posistion:
+                    right_position = role.move(role.working.args["id"], tick_interval)
+
+                    if right_position:
                         if int(role.working.progress) == role.working.progress_need:
-                            self.evnCtlr.change_map(role.working.args["id"], "0")
+                            self.evnCtlr.change_map(role.location, role.working.args["id"], "0")
 
                             role.inventory.add("7", randint(10, 30))
                             role.working = None
@@ -395,10 +408,10 @@ class RoleController:
 
                 elif role.working.type == WORK.BUILD:
                     blueprint = self.buildCtlr.blueprints[role.working.args["id"]]
-                    right_posistion = role.move(blueprint.hitbox_lt, tick_interval)
+                    right_position = role.move(blueprint.hitbox_lt, tick_interval)
                     resource_need = self.build_info.resource_need[blueprint.type]
 
-                    if right_posistion:
+                    if right_position:
                         if not blueprint.reach_resrc_need(resource_need):
                             resource_add = blueprint.put_resrc(
                                 role.inventory,
@@ -418,9 +431,9 @@ class RoleController:
 
                 elif role.working.type == WORK.OPEN_STORAGE:
                     building = self.buildCtlr.buildings[role.working.args["id"]]
-                    right_posistion = role.move(building.hitbox_lt, tick_interval)
+                    right_position = role.move(building.hitbox_lt, tick_interval)
 
-                    if right_posistion:
+                    if right_position:
                         self.UICtlr.open_building_ui(
                             building.type,
                             role.working.args["id"],
@@ -430,37 +443,37 @@ class RoleController:
 
                 elif role.working.type == WORK.CLEAR_ITEM:
                     storage = self.buildCtlr.buildings[role.working.args["storage"]]
-                    right_posistion = role.move(storage.hitbox_lt, tick_interval)
+                    right_position = role.move(storage.hitbox_lt, tick_interval)
 
-                    if right_posistion:
+                    if right_position:
                         role.inventory.transfer(storage.inventory, forced=True)
                         self.working = None
 
                 elif role.working.type == WORK.CLEAR_BUILD_INV:
                     building = self.buildCtlr.buildings[role.working.args["build"]]
-                    right_posistion = role.move(building.hitbox_lt, tick_interval)
+                    right_position = role.move(building.hitbox_lt, tick_interval)
                     next_ = role.working.args["next"]
 
-                    if right_posistion:
+                    if right_position:
                         building.inventory.transfer(role.inventory)
                         self.new_work(role.id, next_["type"], next_)
 
                 elif role.working.type == WORK.CAPTURE_ANIMAL:
                     animal = self.animalCtlr.animals[role.working.args["animal"]]
-                    right_posistion = role.move((animal.x, animal.y), tick_interval)
+                    right_position = role.move((animal.x, animal.y), tick_interval)
 
-                    if right_posistion:
+                    if right_position:
                         animal.tamed = True
                         self.new_work(role.id, WORK.BRING_ANIMAL, role.working.args)
 
                 elif role.working.type == WORK.BRING_ANIMAL:
                     farm = self.buildCtlr.buildings[role.working.args["farm"]]
                     animal = self.animalCtlr.animals[role.working.args["animal"]]
-                    right_posistion = role.move(farm.hitbox_lt, tick_interval)
+                    right_position = role.move(farm.hitbox_lt, tick_interval)
                     animal.x = role.x
                     animal.y = role.y
 
-                    if right_posistion:
+                    if right_position:
                         if animal.type not in farm.animals:
                             farm.animals[animal.type] = 0
                         farm.animals[animal.type] += 1
@@ -468,10 +481,48 @@ class RoleController:
                         self.animalCtlr.animals.pop(role.working.args["animal"])
                         role.working = None
 
+                elif role.working.type == WORK.GO_MINE:
+                    mine = self.buildCtlr.buildings[role.working.args["mine"]]
+                    right_position = role.move(mine.hitbox_lt, tick_interval)
+
+                    if right_position:
+                        if int(mine.depth) < mine.max_depth:
+                            mine.depth += 10 * tick_interval
+                        else:
+                            role.location = self.evnCtlr.dig_down(mine)
+                            role.working = None
+
+                elif role.working.type == WORK.MINE_BLOCK:
+                    right_position = role.move(role.working.args["id"], tick_interval)
+
+                    if right_position:
+                        if int(role.working.progress) == role.working.progress_need:
+                            block_type = self.evnCtlr.change_map(role.location,
+                                role.working.args["id"],
+                                "0")
+
+                            if block_type == ROCK:
+                                role.inventory.add("8", randint(10, 30))
+                            elif block_type == COAL:
+                                role.inventory.add("12", randint(8, 12))
+                            elif block_type == COPPER:
+                                role.inventory.add("13", randint(5, 7))
+                            elif block_type == IRON:
+                                role.inventory.add("14", randint(5, 7))
+                            elif block_type == GOLD:
+                                role.inventory.add("15", randint(5, 7))
+                            role.working = None
+                        else:
+                            role.working.progress += tick_interval
+
+            # elif self.location
+
     def render(self, viewX, viewY):
         blk_sz = self.screen.block_size
 
         for role in self.roles.values():
+            if role.location != self.evnCtlr.present_layer.type:
+                continue
             if role.x >= viewX and role.x - viewX < self.screen.width_blocks:
                 if role.y >= viewY and role.y - viewY < self.screen.height_blocks:
                     x = (role.x - viewX) * blk_sz
