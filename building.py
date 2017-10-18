@@ -149,8 +149,7 @@ class BluePrint:
 
         return BluePrint(type_, pos, facing, build_info)
 
-class Storage:
-    DATA_LIST = {"inventory": Inventory}
+class Building_Base:
     @classmethod
     def transfer(cls, building_value):
         datas = {}
@@ -158,10 +157,16 @@ class Storage:
             try:
                 datas[data] = building_value[data]
             except:
-                datas[data] = type_()
+                if type_ != None:
+                    datas[data] = type_()
+                else:
+                    datas[data] = None
         return cls.DATA_LIST, datas
 
-class Farm:
+class Storage(Building_Base):
+    DATA_LIST = {"inventory": Inventory}
+
+class Farm(Building_Base):
     DATA_LIST = {
         "inventory": Inventory,
         "animals": dict,
@@ -169,15 +174,6 @@ class Farm:
         "random_tick": int,
         "animal_info": BuildingInfo
         }
-    @classmethod
-    def transfer(cls, building_value):
-        datas = {}
-        for data, type_ in cls.DATA_LIST.items():
-            try:
-                datas[data] = building_value[data]
-            except:
-                datas[data] = type_()
-        return cls.DATA_LIST, datas
 
     @staticmethod
     def animal_str_parse(string):
@@ -193,21 +189,18 @@ class Farm:
 
         return aniamls
 
-class Mine:
+class Mine(Building_Base):
     DATA_LIST = {
         "depth": int,
         "max_depth": int,
         "exit": bool,
         }
-    @classmethod
-    def transfer(cls, building_value):
-        datas = {}
-        for data, type_ in cls.DATA_LIST.items():
-            try:
-                datas[data] = building_value[data]
-            except:
-                datas[data] = type_()
-        return cls.DATA_LIST, datas
+
+class Smelter(Building_Base):
+    DATA_LIST = {
+        "jobs": list,
+        "doing": None,
+        }
 
 class Building:
     __type__ = "building"
@@ -222,13 +215,20 @@ class Building:
             self.inherit_data_types, values = Storage.transfer(building_value)
             for name, value in values.items():
                 self.__setattr__(name, value)
+
         elif type_ == build_info.FARM:
             self.inherit_data_types, values = Farm.transfer(building_value)
             for name, value in values.items():
                 self.__setattr__(name, value)
+
         elif type_ == build_info.MINE:
             building_value["max_depth"] = 10
             self.inherit_data_types, values = Mine.transfer(building_value)
+            for name, value in values.items():
+                self.__setattr__(name, value)
+
+        elif type_ == build_info.SMELTER:
+            self.inherit_data_types, values = Smelter.transfer(building_value)
             for name, value in values.items():
                 self.__setattr__(name, value)
 
@@ -338,6 +338,9 @@ class Building:
         elif type_ == build_info.MINE:
             building_value = dict()
 
+        elif type_ == build_info.SMELTER:
+            building_value = dict()
+
         return Building(type_,
             pos, 
             facing,
@@ -357,6 +360,9 @@ class BuildingController:
         self.blueprints = {}
 
         self.occupied = {}
+
+    def __getitem__(self, key):
+        return self.buildings[key]
 
     def setUpCtlr(self, envCtlr):
         self.envCtlr = envCtlr

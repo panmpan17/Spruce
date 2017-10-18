@@ -7,7 +7,7 @@
 		"height": 3,
 		"build_time": 1,
 		"build_need": {
-			"7": 100
+			"wood": 100
 		}
 	},
 	"2": {
@@ -18,7 +18,7 @@
 		"height": 5,
 		"build_time": 1,
 		"build_need": {
-			"7": 500
+			"wood": 500
 		}
 	},
 	"3": {
@@ -29,19 +29,44 @@
 		"height": 3,
 		"build_time": 1,
 		"build_need": {
-			"7": 300
+			"wood": 300
 		}
 	},
 	"4": {
 		"name": "Smelter",
-		"building_src": "mine.png",
-		"icon_src": "mine.png",
+		"building_src": "smelter.png",
+		"icon_src": "smelter.png",
 		"width": 2,
 		"height": 2,
 		"build_time": 1,
 		"build_need": {
-			"8": 150
-		}
+			"pebble": 150},
+		"works": [
+			{
+				"product": "copper",
+				"amount": 1,
+				"time": 1,
+				"need": {
+					"coal": 3,
+					"copper_ore": 2}
+			},
+			{
+				"product": "iron",
+				"amount": 1,
+				"time": 1,
+				"need": {
+					"coal": 3,
+					"iron_ore": 2}
+			},
+			{
+				"product": "gold",
+				"amount": 1,
+				"time": 1,
+				"need": {
+					"coal": 3,
+					"gold_ore": 2}
+			}
+		]
 	}
 
 }

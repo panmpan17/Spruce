@@ -1,69 +1,73 @@
 {
-    "1": {
+    "meet": {
         "name": "Meat",
         "src": "meat.png"
     },
-    "2":{
+    "milk":{
         "name": "Milk",
         "src": "milk.png"
     },
-    "3": {
+    "feather": {
         "name": "Feather",
         "src": "feather.png"
     },
-    "4":{
+    "wool":{
         "name": "Wool",
         "src": "wool.png"
     },
-    "5":{
+    "egg":{
         "name": "Egg",
         "src": "egg.png"
     },
-    "6":{
+    "leather":{
         "name": "Leather",
         "src": "leather.png"
     },
-    "7":{
+    "wood":{
         "name": "Wood",
         "src": "wood.png"
     },
-    "8":{
-        "name": "Stone",
+    "pebble":{
+        "name": "Pebble",
         "src": "pebble.png"
     },
-    "9":{
+    "dirt":{
         "name": "Dirt",
         "src": "dirt.png"
     },
-    "10":{
-        "name": "Copper",
-        "src": "copper.png"
-    },
-    "11":{
-        "name": "Iron",
-        "src": "iron.png"
-    },
-    "12":{
+    "coal":{
         "name": "Coal",
         "src": "coal.png"
     },
-    "13":{
-        "name": "Copper Ore",
-        "src": "copper_ore.png"
+    "copper":{
+        "name": "Copper",
+        "src": "copper.png"
     },
-    "14":{
-        "name": "Iron Ore",
-        "src": "iron_ore.png"
+    "iron":{
+        "name": "Iron",
+        "src": "iron.png"
     },
-    "15":{
-        "name": "Gold Ore",
-        "src": "gold_ore.png"
+    "gold":{
+        "name": "Gold",
+        "src": "gold.png"
     },
-    "16":{
+    "steel":{
         "name": "Steel",
         "src": "steel.png"
     },
-    "17":{
+    "copper_ore":{
+        "name": "Copper Ore",
+        "src": "copper_ore.png"
+    },
+    "iron_ore":{
+        "name": "Iron Ore",
+        "src": "iron_ore.png"
+    },
+    "gold_ore":{
+        "name": "Gold Ore",
+        "src": "gold_ore.png"
+    },
+    "sapling":{
         "name": "Tree sapling",
         "src": "tree_sapling.png"
     }
