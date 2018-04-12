@@ -202,6 +202,12 @@ class Smelter(Building_Base):
         "doing": None,
         }
 
+class Forge(Building_Base):
+    DATA_LIST = {
+        "jobs": list,
+        "doing": None,
+        }
+
 class Building:
     __type__ = "building"
 
@@ -211,26 +217,26 @@ class Building:
         self.type = type_
 
         self.inherit_data_types = {}
+        values = {}
+
         if type_ == build_info.STORAGE:
             self.inherit_data_types, values = Storage.transfer(building_value)
-            for name, value in values.items():
-                self.__setattr__(name, value)
 
         elif type_ == build_info.FARM:
             self.inherit_data_types, values = Farm.transfer(building_value)
-            for name, value in values.items():
-                self.__setattr__(name, value)
 
         elif type_ == build_info.MINE:
             building_value["max_depth"] = 10
             self.inherit_data_types, values = Mine.transfer(building_value)
-            for name, value in values.items():
-                self.__setattr__(name, value)
 
         elif type_ == build_info.SMELTER:
             self.inherit_data_types, values = Smelter.transfer(building_value)
-            for name, value in values.items():
-                self.__setattr__(name, value)
+
+        elif type_ == build_info.FORGE:
+            self.inherit_data_types, values = Forge.transfer(building_value)
+
+        for name, value in values.items():
+            self.__setattr__(name, value)
 
         src = build_info.buildings[type_]["building_src"]
         self.hitbox_lt = tuple(pos)

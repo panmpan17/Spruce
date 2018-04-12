@@ -3,7 +3,7 @@
         "name": "Meat",
         "src": "meat.png"
     },
-    "milk":{
+    "milk": {
         "name": "Milk",
         "src": "milk.png"
     },
@@ -11,64 +11,76 @@
         "name": "Feather",
         "src": "feather.png"
     },
-    "wool":{
+    "wool": {
         "name": "Wool",
         "src": "wool.png"
     },
-    "egg":{
+    "egg": {
         "name": "Egg",
         "src": "egg.png"
     },
-    "leather":{
+    "leather": {
         "name": "Leather",
         "src": "leather.png"
     },
-    "wood":{
+    "wood": {
         "name": "Wood",
         "src": "wood.png"
     },
-    "pebble":{
+    "pebble": {
         "name": "Pebble",
         "src": "pebble.png"
     },
-    "dirt":{
+    "dirt": {
         "name": "Dirt",
         "src": "dirt.png"
     },
-    "coal":{
+    "coal": {
         "name": "Coal",
         "src": "coal.png"
     },
-    "copper":{
+    "copper": {
         "name": "Copper",
         "src": "copper.png"
     },
-    "iron":{
+    "iron": {
         "name": "Iron",
         "src": "iron.png"
     },
-    "gold":{
+    "gold": {
         "name": "Gold",
         "src": "gold.png"
     },
-    "steel":{
+    "steel": {
         "name": "Steel",
         "src": "steel.png"
     },
-    "copper_ore":{
+    "copper_ore": {
         "name": "Copper Ore",
         "src": "copper_ore.png"
     },
-    "iron_ore":{
+    "iron_ore": {
         "name": "Iron Ore",
         "src": "iron_ore.png"
     },
-    "gold_ore":{
+    "gold_ore": {
         "name": "Gold Ore",
         "src": "gold_ore.png"
     },
-    "sapling":{
-        "name": "Tree sapling",
+    "sapling": {
+        "name": "Tree Sapling",
         "src": "tree_sapling.png"
+    },
+    "copper_sword": {
+        "name": "Copper Made Sword",
+        "src": "copper_sword.png"
+    },
+    "iron_sword": {
+        "name": "Iron Made Sword",
+        "src": "iron_sword.png"
+    },
+    "wood_sword": {
+        "name": "Wood Made Sword",
+        "src": "wood_sword.png"
     }
 }

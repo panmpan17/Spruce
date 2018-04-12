@@ -67,6 +67,61 @@
 					"gold_ore": 2}
 			}
 		]
+	},
+	"5": {
+		"name": "Forge",
+		"building_src": "forge.png",
+		"icon_src": "forge.png",
+		"width": 2,
+		"height": 2,
+		"build_time": 1,
+		"build_need": {
+			"wood": 50,
+			"pebble": 100},
+		"works": [
+			{
+				"product": "wood_sword",
+				"amount": 1,
+				"time": 1,
+				"need": {
+					"wood": 30}
+			},
+			{
+				"product": "iron_sword",
+				"amount": 1,
+				"time": 1,
+				"need": {
+					"iron": 20,
+					"wood": 10}
+			},
+			{
+				"product": "copper_sword",
+				"amount": 1,
+				"time": 1,
+				"need": {
+					"copper": 20,
+					"wood": 10}
+			}
+		]
+	},
+	"6": {
+		"name": "Wood Wall",
+		"building_src": "wood_wall.png",
+		"icon_src": "wood_wall.png",
+		"width": 1,
+		"height": 1,
+		"build_time": 1,
+		"build_need": {
+			"wood": 20}
+	},
+	"7": {
+		"name": "Stone Wall",
+		"building_src": "stone_wall.png",
+		"icon_src": "stone_wall.png",
+		"width": 1,
+		"height": 1,
+		"build_time": 1,
+		"build_need": {
+			"pebble": 20}
 	}
-
 }

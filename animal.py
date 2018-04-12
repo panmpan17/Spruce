@@ -91,12 +91,12 @@ class AnimalBasic:
 class Cow(AnimalBasic):
     def __init__(self, x, y, tamed):
         super().__init__(x, y, tamed, COW)
-        self.step = 6
+        self.step = 4
 
 class Sheep(AnimalBasic):
     def __init__(self, x, y, tamed):
         super().__init__(x, y, tamed, SHEEP)
-        self.step = 4
+        self.step = 6
 
 class Chicken(AnimalBasic):
     def __init__(self, x, y, tamed):

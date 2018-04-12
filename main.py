@@ -12,6 +12,7 @@ from animal import AnimalController, AnimalInfo
 from role import RoleController
 from ui import UIController, ItemInfo
 from building import BuildingController, BuildingInfo
+from work import JobControler
 
 from threading import Thread
 from time import sleep
@@ -71,6 +72,7 @@ class App:
             self.screen,
             self.build_info,
             self.items_info)
+        self.jobCtlr = JobControler()
 
         self.GameEngine = None
         self.STOP = False
@@ -89,7 +91,8 @@ class App:
             self.envCtlr,
             self.animalCtlr,
             self.buildCtlr,
-            self.UICtlr
+            self.UICtlr,
+            self.jobCtlr,
             )
 
         self.buildCtlr.setUpCtlr(
@@ -101,6 +104,7 @@ class App:
             self.roleCtlr,
             self.buildCtlr,
             self.animalCtlr,
+            self.jobCtlr,
             )
 
     def zoom_in(self):

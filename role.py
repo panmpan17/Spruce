@@ -1,29 +1,12 @@
 import pygame
 import os
-from color import clr
 import math
+from color import clr
 
 from random import randint
 from pygame_extendtion import *
 from enviroment import AIR, ROCK, TREE, COAL, COPPER, IRON, GOLD
-
-
-class WORK:
-    BUILD = "build"
-    CHOP = "chop_tree"
-    MOVEITEM = "move_item"
-    MOVE = "move"
-    PRODUCE = "produce"
-    OPEN_STORAGE = "open_storage"
-    GO_FARM = "open_farm"
-    CAPTURE_ANIMAL = "capture_animal"
-    BRING_ANIMAL = "bring_animal_to_farm"
-    CLEAR_ITEM = "go_storage_clear_unforced_item"
-    CLEAR_BUILD_INV = "clear_building_inventory"
-    GO_MINE = "go_mine"
-    GO_SURFACE = "go_surface"
-    MINE_BLOCK = "mining"
-    SMETLING = "smelting"
+from work import WORK, Working
 
 class InventoryItem:
     def __init__(self, type_, count, forced):
@@ -161,6 +144,9 @@ class Inventory:
             self.slots[empty_slots[i + 1]] = InventoryItem(type_, count - (50 * (time - 1)), False)
             return 0
 
+    def check_empty_slot(self):
+        return self.slots.count(None)
+
     def set_item_forced(self, item_index, forced):
         if self.slots[item_index] == None:
             return
@@ -238,29 +224,6 @@ class Inventory:
     def empty_infinite():
         return Inventory(slots=[], limit=-1)
 
-class Working:
-    def __init__(self, type_, work_args):
-        self.type = type_
-        self.args = work_args
-
-        self.progress = 0
-
-        if type_ == WORK.CHOP:
-            self.progress_need = 1
-        elif type_ == WORK.MINE_BLOCK:
-            self.progress_need = 1
-        elif type_ == WORK.SMETLING:
-            self.progress_need = self["work"]["time"]
-
-    def __repr__(self):
-        return f"{self.type} {self.args}"
-
-    def __getitem__(self, key):
-        return self.args[key]
-
-    def parse(self):
-        pass
-
 class Role:
     def __init__(self, id_, x, y, location, working, inventory):
         self.id = id_
@@ -308,6 +271,7 @@ class RoleController:
         self.evnCtlr = None
         self.buildCtlr = None
         self.animalCtlr = None
+        self.jobCtlr = None
         self.surface = None
 
         self.roles = {}
@@ -316,23 +280,25 @@ class RoleController:
     def __getitem__(self, id_):
         return self.roles[id_]
 
-    def setUpCtlr(self, evnCtlr, animalCtlr, buildCtlr, UICtlr):
+    def setUpCtlr(self, evnCtlr, animalCtlr, buildCtlr, UICtlr, jobCtlr):
         self.evnCtlr = evnCtlr
         self.animalCtlr = animalCtlr
         self.buildCtlr = buildCtlr
         self.UICtlr = UICtlr
+        self.jobCtlr = jobCtlr
 
     def change_surface(self, surface):
         self.surface = surface
 
     def new_work(self, role_id, type_, work_args):
-        work = self.roles[role_id].working
+        role = self.roles[role_id]
+        work = role.working
         if work != None:
             if work.type == WORK.BRING_ANIMAL:
                 animal = self.animalCtlr.animals[work.args["animal"]]
                 animal.tamed = False
 
-        self.roles[role_id].working = Working(type_, work_args)
+        role.working = Working(type_, role.location, work_args)
 
     def add_item(self, role_id, type_, count):
         return self.roles[role_id].inventory.add(type_, count)
@@ -402,11 +368,11 @@ class RoleController:
         for role in self.roles.values():
             if role.working != None:
                 if role.working.type == WORK.CHOP:
-                    right_position = role.move(role.working["id"], tick_interval)
+                    right_position = role.move(role.working["wood"], tick_interval)
 
                     if right_position:
                         if int(role.working.progress) == role.working.progress_need:
-                            self.evnCtlr.change_map(role.location, role.working["id"], AIR)
+                            self.evnCtlr.change_map(role.location, role.working["wood"], AIR)
 
                             role.inventory.add("wood", randint(10, 30))
                             role.working = None
@@ -442,9 +408,7 @@ class RoleController:
 
                     if right_position:
                         self.UICtlr.open_building_ui(
-                            role.working["id"],
-                            role.id
-                            )
+                            role.working["id"], role.id)
                         role.working = None
 
                 elif role.working.type == WORK.CLEAR_ITEM:
@@ -453,7 +417,7 @@ class RoleController:
 
                     if right_position:
                         role.inventory.transfer(storage.inventory, forced=True)
-                        self.working = None
+                        role.working = None
 
                 elif role.working.type == WORK.CLEAR_BUILD_INV:
                     building = self.buildCtlr.buildings[role.working["build"]]
@@ -528,20 +492,23 @@ class RoleController:
                         else:
                             role.working.progress += tick_interval
 
-                elif role.working.type == WORK.SMETLING:
-                    smelter = self.buildCtlr[role.working["smelter"]]
-                    right_position = role.move(smelter.hitbox_lt, tick_interval)
+                elif role.working.type == WORK.DO_BUILDING_JOB:
+                    building = self.buildCtlr[role.working["building"]]
+                    right_position = role.move(building.hitbox_lt, tick_interval)
 
                     if right_position:
                         if int(role.working.progress) == role.working.progress_need:
                             work = role.working["work"]
                             role.inventory.add(work["product"], work["amount"])
-                            smelter.jobs.pop(role.working["work_index"])
+                            building.jobs.pop(role.working["work_index"])
 
-                            smelter.doing = None
+                            building.doing = None
                             role.working = None
                         else:
                             role.working.progress += tick_interval
+                            building.doing = True
+            elif len(self.jobCtlr.queue) > 0:
+                role.working = self.jobCtlr.get(role.location)
 
     def render(self, viewX, viewY):
         blk_sz = self.screen.block_size

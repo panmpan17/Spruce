@@ -58,8 +58,13 @@ BACK_SURFACE = "back_to_surface"
 
 # smelter event
 SHOW_SMELTER_JOB = "show_smelter_jobs"
-SMELTER_JOB = "smetler_job"
-ASIGN_SMELT = "asign_smelt"
+
+
+# forge event
+SHOW_FORGE_JOB = "show_forge_jobs"
+
+ASIGN_JOB = "asign_job"
+ADD_JOB = "add_job"
 
 # building rotate
 face_up = lambda p: (p[1], -p[0])
@@ -136,7 +141,10 @@ class Button:
         self.bg_clr = bg_clr
 
         self.event = event
-        self.args = args
+        if args != None:
+            self.args = args
+        else:
+            self.args = {}
 
     def __repr__(self):
         return f"{self.floting} {self.x},{self.y} {self.event}"
@@ -245,6 +253,7 @@ class UIController:
         self.roleCtlr = None
         self.envCtlr = None
         self.buildCtlr = None
+        self.jobCtlr = None
 
         self.font = None
         self.close_icon = None
@@ -268,11 +277,12 @@ class UIController:
             pygame.image.load("texture/building/icon/storage.png"), (30, 30)
             )
 
-    def setUpCtlr(self, envCtlr, roleCtlr, buildCtlr, animalCtlr):
+    def setUpCtlr(self, envCtlr, roleCtlr, buildCtlr, animalCtlr, jobCtlr):
         self.envCtlr = envCtlr
         self.roleCtlr = roleCtlr
         self.buildCtlr = buildCtlr
         self.animalCtlr = animalCtlr
+        self.jobCtlr = jobCtlr
 
     def press(self, key):
         if self.left_selected != None:
@@ -295,6 +305,12 @@ class UIController:
         for btn in self.buttons:
             if btn.click(self.mouse_pos, blk_sz, viewX, viewY):
                 if btn.event == CLOSE_INFO_UI:
+                    try:
+                        self.buttons.event_clear(btn.args["button_close"])
+                        self.right_buttons.event_clear(btn.args["button_close"])
+                    except:
+                        pass
+
                     self.buttons.event_clear(CLOSE_INFO_UI)
                     self.left_selected = None
 
@@ -344,7 +360,7 @@ class UIController:
                         counts = self.roleCtlr.set_all_item_forced(role_id, forced=False)
 
                 elif btn.event == TARGET_CAPTURE:
-                    self.left_selected = (TARGET_CAPTURE, btn["role"], btn["farm"])
+                    self.left_selected = (TARGET_CAPTURE, btn["farm"])
 
                     self.full_ui = None
                     self.buttons.clear_all()
@@ -357,7 +373,8 @@ class UIController:
                         return True
 
                     if build.inventory.slots.count(None) != build.inventory.limit:
-                        self.roleCtlr.new_work(btn["role"], WORK.CLEAR_BUILD_INV, btn.args)
+                        self.jobCtlr.put(WORK.CLEAR_BUILD_INV,
+                            self.envCtlr.present_layer.type, btn.args)
 
                         self.buttons.clear_all()
                         self.right_buttons.clear_all()
@@ -370,16 +387,25 @@ class UIController:
                         btn["smelter"],
                         None)
 
-                elif btn.event == SMELTER_JOB:
-                    smelter = self.buildCtlr[btn["smelter"]]
-                    smelter.jobs.append(btn["work"])
+                elif btn.event == ADD_JOB:
+                    building = self.buildCtlr[btn["building"]]
+                    building.jobs.append(btn["work"])
+                    print(building.jobs)
+
+                elif btn.event == SHOW_FORGE_JOB:
+                    self.buttons.clear_all()
+
+                    self.open_building_ui(
+                        btn["forge"],
+                        None)
 
                 return True
 
         for btn in self.right_buttons:
             if btn.click(self.mouse_pos, blk_sz, viewX, viewY):
                 if btn.event == CHOP_TREE:
-                    self.roleCtlr.new_work(btn["role"], WORK.CHOP, btn.args)
+                    self.jobCtlr.put(WORK.CHOP,self.envCtlr.present_layer.type,
+                        btn.args)
 
                     self.right_buttons.clear_all()
                     self.right_selected = None
@@ -437,35 +463,20 @@ class UIController:
                             text=self.font.get_16_text("Clear Item", clr.white)
                         ))
 
-                elif btn.event == ASIGN_GO_FARM:
-                    self.open_building_ui(
-                        btn["id"],
-                        btn["role"])
-
-                    self.right_buttons.clear_all()
-                    self.right_selected = None
-
-                elif btn.event == ASIGN_GO_MINE:
-                    self.roleCtlr.new_work(btn["role"], WORK.GO_MINE, btn.args)
-
-                    self.right_buttons.clear_all()
-                    self.right_selected = None
-
-                elif btn.event == MINE_BLOCK:
-                    self.roleCtlr.new_work(btn["role"], WORK.MINE_BLOCK, btn.args)
-
-                    self.right_buttons.clear_all()
-                    self.right_selected = None
-
                 elif btn.event == BACK_SURFACE:
                     self.roleCtlr.new_work(btn["role"], WORK.GO_SURFACE, btn.args)
 
                     self.right_buttons.clear_all()
                     self.right_selected = None
 
-                elif btn.event == ASIGN_SMELT:
+                elif btn.event == ASIGN_JOB:
                     # check role resource
                     role = self.roleCtlr[btn["role"]]
+                    if role.inventory.check_empty_slot() == 0:
+                        self.right_buttons.clear_all()
+                        self.right_selected = None
+                        return
+
                     resource_need = btn["work"]["need"]
                     for type_, count in resource_need.items():
                         if count > role.inventory.count_item(type_):
@@ -476,10 +487,11 @@ class UIController:
                     for type_, count in resource_need.items():
                         role.inventory.take(type_, count)
 
-                    self.roleCtlr.new_work(btn["role"], WORK.SMETLING, btn.args)
+                    self.roleCtlr.new_work(btn["role"], WORK.DO_BUILDING_JOB, btn.args)
 
+                    self.buttons.clear_all()
                     self.right_buttons.clear_all()
-                    self.right_selected = None
+                    self.left_selected = None
 
                 return True
         return False
@@ -488,58 +500,35 @@ class UIController:
         block_clicked = self.envCtlr.click(x, y, viewX, viewY)
         if block_clicked:
             if block_clicked[0] == TREE:
-                self.right_buttons.clear_all()
-
-                y = block_clicked[2]
-                for role in self.roleCtlr.roles:
-                    self.right_buttons.append(Button(
-                        (block_clicked[1], y),
-                        (12, 2),
-                        event=CHOP_TREE,
-                        args={
-                            "role": role,
-                            "id": block_clicked[1:]},
-                        floting=True,
-                        text=self.font.get_16_text(
-                            f"Asign {role} to chop tree", clr.white)
-                        ))
-                    y += 2
+                self.jobCtlr.put(WORK.CHOP, self.envCtlr.present_layer.type,
+                    {"wood": block_clicked[1:]})
                 return True
 
             elif self.envCtlr.present_layer.type == UNDERGROUND:
                 if block_clicked[0] == EXIT:
                     y = block_clicked[2]
-                    for role in self.roleCtlr.roles:
-                        self.right_buttons.append(Button(
-                            (block_clicked[1], y),
-                            (12, 2),
-                            event=BACK_SURFACE,
-                            args={
-                                "role": role,
-                                "exit": (block_clicked[1], block_clicked[2]),
-                                "layer": GROUND},
-                            floting=True,
-                            text=self.font.get_16_text(
-                                f"Let {role} back to surface", clr.white)
-                            ))
-                        y += 2
+                    for i, role in self.roleCtlr.roles.items():
+                        if role.location == self.envCtlr.present_layer.type:
+                            self.right_buttons.append(Button(
+                                (block_clicked[1], y),
+                                (12, 2),
+                                event=BACK_SURFACE,
+                                args={
+                                    "role": i,
+                                    "exit": (block_clicked[1], block_clicked[2]),
+                                    "layer": GROUND},
+                                floting=True,
+                                text=self.font.get_16_text(
+                                    f"Let {i} back to surface", clr.white)
+                                ))
+                            y += 2
                     return True
 
                 elif block_clicked[0] != AIR:
-                    y = block_clicked[2]
-                    for role in self.roleCtlr.roles:
-                        self.right_buttons.append(Button(
-                            (block_clicked[1], y),
-                            (12, 2),
-                            event=MINE_BLOCK,
-                            args={
-                                "role": role,
-                                "id": block_clicked[1:]},
-                            floting=True,
-                            text=self.font.get_16_text(
-                                f"Asign {role} to mine", clr.white)
-                            ))
-                        y += 2
+                    self.jobCtlr.put(WORK.MINE_BLOCK,
+                        self.envCtlr.present_layer.type,
+                        {"id": block_clicked[1:]})
+
                     return True
         return False
 
@@ -560,10 +549,16 @@ class UIController:
                     ))
                 return True
             elif building.type == self.build_info.SMELTER:
+                if building.doing != None:
+                    return True
+
                 self.left_selected = (BUILDING, id(building))
+                self.buttons.clear_all()
 
                 self.buttons.append(Button(
                     pos=(0, self.screen.height - INV_HEIGHT - 150),
+                    args={
+                        "button_close": (SHOW_SMELTER_JOB, )},
                     size=(24, 24),
                     event=CLOSE_INFO_UI,
                     text=self.font.get_24_text("X", clr.red),
@@ -576,6 +571,34 @@ class UIController:
                         "smelter": id(building)},
                     size=(24, 24),
                     event=SHOW_SMELTER_JOB,
+                    text=self.font.get_24_text("+", clr.yellow),
+                    bg_clr=None,
+                    ))
+                return True
+
+            elif building.type == self.build_info.FORGE:
+                if building.doing != None:
+                    return True
+
+                self.left_selected = (BUILDING, id(building))
+                self.buttons.clear_all()
+
+                self.buttons.append(Button(
+                    pos=(0, self.screen.height - INV_HEIGHT - 150),
+                    args={
+                        "button_close": (SHOW_FORGE_JOB, )},
+                    size=(24, 24),
+                    event=CLOSE_INFO_UI,
+                    text=self.font.get_24_text("X", clr.red),
+                    bg_clr=None,
+                    ))
+
+                self.buttons.append(Button(
+                    pos=(60, self.screen.height - INV_HEIGHT - 150),
+                    args={
+                        "forge": id(building)},
+                    size=(24, 24),
+                    event=SHOW_FORGE_JOB,
                     text=self.font.get_24_text("+", clr.yellow),
                     bg_clr=None,
                     ))
@@ -626,38 +649,12 @@ class UIController:
                     y += 2
 
             elif building.type == self.build_info.FARM:
-                y = building.hitbox_rd[1] - 1
-                for role in self.roleCtlr.roles:
-                    self.right_buttons.append(Button(
-                        (building.hitbox_lt[0], y),
-                        (13, 2),
-                        event=ASIGN_GO_FARM,
-                        args={
-                            "role": role,
-                            "id": id(building)},
-                        floting=True,
-                        text=self.font.get_16_text(
-                            f"Asign {role} to go to this Farm",
-                            clr.white)
-                        ))
-                    y += 2
+                self.open_building_ui(id(building))
 
             elif building.type == self.build_info.MINE:
-                y = building.hitbox_rd[1] - 1
-                for role in self.roleCtlr.roles:
-                    self.right_buttons.append(Button(
-                        (building.hitbox_lt[0], y),
-                        (13, 2),
-                        event=ASIGN_GO_MINE,
-                        args={
-                            "role": role,
-                            "mine": id(building)},
-                        floting=True,
-                        text=self.font.get_16_text(
-                            f"Asign {role} to go mine",
-                            clr.white)
-                        ))
-                    y += 2
+                self.jobCtlr.put(WORK.GO_MINE,
+                    self.envCtlr.present_layer.type, {"mine": id(building)})
+
             return True
         return False
 
@@ -665,11 +662,11 @@ class UIController:
         x, y = self.mouse_pos
         blk_sz = self.screen.block_size
 
-        if self.full_ui:
-            button_press = self.detect_buttons(viewX, viewY)
-            if button_press:
-                return
+        button_press = self.detect_buttons(viewX, viewY)
+        if button_press:
+            return
 
+        if self.full_ui:
             self.buttons.event_clear([CLEAR_ITEM, FORCE_ITEM, UNFORCE_ITEM])
 
             if self.full_ui[0] == "Building":
@@ -761,15 +758,15 @@ class UIController:
                         closet = (dis, i)
 
                 if closet:
-                    self.roleCtlr.new_work(self.left_selected[1],
-                        WORK.CAPTURE_ANIMAL,
-                        {"animal": closet[1], "farm": self.left_selected[2]})
+                    self.jobCtlr.put(WORK.CAPTURE_ANIMAL,
+                        self.envCtlr.present_layer.type,
+                        {"animal": closet[1], "farm": self.left_selected[1]})
                 self.left_selected = None
                 return
 
             elif self.left_selected[0] == BUILDING:
                 building = self.buildCtlr[self.left_selected[1]]
-                if building.type == self.build_info.SMELTER:
+                if building.type == self.build_info.SMELTER or building.type == self.build_info.FORGE:
                     if building.doing != None:
                         return
 
@@ -792,12 +789,12 @@ class UIController:
                             self.right_buttons.append(Button(
                                 (1, y),
                                 (12, 2),
-                                event=ASIGN_SMELT,
+                                event=ASIGN_JOB,
                                 args={
                                     "role": role,
                                     "work": work,
                                     "work_index": work_index,
-                                    "smelter": self.left_selected[1]},
+                                    "building": self.left_selected[1]},
                                 floting=True,
                                 text=self.font.get_16_text(
                                     f"Asign {role} to smelt {work['product']}", clr.white)
@@ -805,10 +802,8 @@ class UIController:
                             y += 2
                         return True
 
-        # detect buttons
-        button_press = self.detect_buttons(viewX, viewY)
-        if button_press:
-            return
+                elif building.type == self.build_info.FORGE:
+                    return True
 
         # detect role is clicked
         role_clicked = self.roleCtlr.click(x, y, viewX, viewY)
@@ -904,12 +899,12 @@ class UIController:
             self.surface.blit(self.font.get_24_text(str_, clr.white),
                 (50, self.screen.height - 100))
 
-        elif building.type == self.build_info.SMELTER:
+        elif building.type == self.build_info.SMELTER or building.type == self.build_info.FORGE:
             y = self.screen.height - INV_HEIGHT - 150
             pygame.draw.rect(self.surface,
                 clr.black_ui_bg,
                 (0, self.screen.height - INV_HEIGHT - 150,
-                INV_WIDTH, INV_HEIGHT + 120),
+                80, INV_HEIGHT + 120),
                 )
 
             y += 30
@@ -918,7 +913,7 @@ class UIController:
                     (10, y))
                 y += 30
 
-    def open_building_ui(self, building_id, role_id):
+    def open_building_ui(self, building_id, role_id=None):
         self.full_ui = ("Building", building_id, role_id)
         self.right_buttons.clear_all()
 
@@ -998,7 +993,6 @@ class UIController:
 
         elif building.type == self.build_info.FARM:
             args = {
-                "role": role_id,
                 "build": building_id,
                 "next": {
                     "type": WORK.CLEAR_ITEM,
@@ -1010,7 +1004,7 @@ class UIController:
                 size=(40, 40),
                 event=TARGET_CAPTURE,
                 bg_clr=clr.red,
-                args={"role": role_id, "farm": building_id}
+                args={"farm": building_id}
                 ))
 
             x = 40
@@ -1028,8 +1022,11 @@ class UIController:
                         ))
                     y += 30
 
-        elif building.type == self.build_info.SMELTER:
-            works_info = self.build_info.buildings[self.build_info.SMELTER]["works"]
+        elif building.type == self.build_info.SMELTER or building.type == self.build_info.FORGE:
+            if building.type == self.build_info.SMELTER:
+                works_info = self.build_info.buildings[self.build_info.SMELTER]["works"]
+            else:
+                works_info = self.build_info.buildings[self.build_info.FORGE]["works"]
 
             x = 80
             y = 50
@@ -1039,9 +1036,9 @@ class UIController:
                     size=(30, 30),
                     text=self.font.get_28_text(f"+", clr.white),
                     border_clr=clr.white,
-                    event=SMELTER_JOB,
+                    event=ADD_JOB,
                     args={
-                        "smelter":building_id,
+                        "building":building_id,
                         "work": work}
                     ))
                 y += 50
@@ -1052,6 +1049,7 @@ class UIController:
 
         if self.full_ui[0] == "Building":
             building = self.buildCtlr[self.full_ui[1]]
+
             if building.type == self.build_info.STORAGE:
                 role = self.roleCtlr[self.full_ui[2]]
                 x = 30
@@ -1126,8 +1124,11 @@ class UIController:
                     else:
                         x += INV_ITEM_SIZE + 10
 
-            elif building.type == self.build_info.SMELTER:
-                works_info = self.build_info.buildings[self.build_info.SMELTER]["works"]
+            elif building.type == self.build_info.SMELTER or building.type == self.build_info.FORGE:
+                if building.type == self.build_info.SMELTER:
+                    works_info = self.build_info.buildings[self.build_info.SMELTER]["works"]
+                else:
+                    works_info = self.build_info.buildings[self.build_info.FORGE]["works"]
 
                 y = 50
                 for work in works_info:
