@@ -1,6 +1,7 @@
 import pygame
 import os
 from color import clr
+from enviroment import AIR
 
 from pygame_extendtion import *
 
@@ -53,18 +54,33 @@ class JobControler:
     def __init__(self):
         self.queue = []
         self.auto_drop_unforced = True
+        self.evnCtlr = None
+
+    def setUpCtlr(self, evnCtlr):
+        self.evnCtlr = evnCtlr
 
     def put(self, work_type, location, work_args):
         self.queue.append(Working(work_type, location, work_args))
 
     def get(self, location):
-        poped_index = None
+        new_work = None
+        remove_job = []
         for i, job in enumerate(self.queue):
             if job.location == location:
-                poped_index = i
+
+                if job.type == WORK.MINE_BLOCK:
+                    x,y = job.args["id"]
+                    if self.evnCtlr.present_layer.map[y][x] == AIR:
+                        remove_job.append(i)
+                        continue
+
+                new_work = job
+                remove_job.append(i)
                 break
 
-        if poped_index != None:
-            return self.queue.pop(poped_index)
-        return None
+        remove_job.reverse()
+        for job_i in remove_job:
+            self.queue.pop(job_i)
+
+        return new_work
 

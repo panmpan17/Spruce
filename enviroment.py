@@ -48,7 +48,8 @@ class Layer:
                 self.forbidden[y].discard(x)
             if y in self.draw_index:
                 if x in self.draw_index[y]:
-                    self.draw_index[y].pop(x)
+                    print(type(self.draw_index))
+                    self.draw_index[y].discard(x)
         else:
             if y not in self.forbidden:
                 self.forbidden[y] = set()

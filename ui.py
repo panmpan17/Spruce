@@ -390,7 +390,6 @@ class UIController:
                 elif btn.event == ADD_JOB:
                     building = self.buildCtlr[btn["building"]]
                     building.jobs.append(btn["work"])
-                    print(building.jobs)
 
                 elif btn.event == SHOW_FORGE_JOB:
                     self.buttons.clear_all()

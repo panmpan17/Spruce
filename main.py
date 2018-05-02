@@ -107,6 +107,10 @@ class App:
             self.jobCtlr,
             )
 
+        self.jobCtlr.setUpCtlr(
+            self.envCtlr,
+            )
+
     def zoom_in(self):
         if self.block_size_level < len(BLK_SZ_LEVELS) - 1:
             self.block_size_level += 1
