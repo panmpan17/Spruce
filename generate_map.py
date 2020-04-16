@@ -246,6 +246,11 @@ class UnderGroundMap:
 
 
 if __name__ == "__main__":
+    ground = GroundMap()
+    ground.gen_ground()
+    # ground.gen_rock()
+    ground.gen_tree()
+    ground.save("map/ground.txt")
     under_ground = UnderGroundMap()
     under_ground.gen_ore()
     under_ground.save("map/underground.txt")

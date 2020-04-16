@@ -1,12 +1,11 @@
 import pygame
 import os
 import math
-from color import clr
 
 from random import randint
-from pygame_extendtion import *
-from enviroment import AIR, ROCK, TREE, COAL, COPPER, IRON, GOLD
+from enviroment import AIR, ROCK, COAL, COPPER, IRON, GOLD
 from work import WORK, Working
+
 
 class InventoryItem:
     def __init__(self, type_, count, forced):
@@ -34,11 +33,12 @@ class InventoryItem:
 
         return InventoryItem(type_, count, forced)
 
+
 class Inventory:
     def __init__(self, slots=None, limit=10):
         self.slots = []
 
-        if slots == None:
+        if slots is None:
             for i in range(limit):
                 self.slots.append(None)
         else:
@@ -57,9 +57,8 @@ class Inventory:
     def add(self, type_, count):
         type_slot = []
         empty_slots = []
-        extend_slots = []
         for i, slot in enumerate(self.slots):
-            if slot == None:
+            if slot is None:
                 empty_slots.append(i)
             elif slot.type == type_:
                 type_slot.append(i)
@@ -95,7 +94,7 @@ class Inventory:
     def take(self, type_, count):
         slot_empty = []
         for i, slot in enumerate(self.slots):
-            if slot == None:
+            if slot is None:
                 continue
             if slot.type == type_:
                 if slot.forced:
@@ -123,7 +122,7 @@ class Inventory:
     def count_item(self, type_):
         c = 0
         for slot in self.slots:
-            if slot == None:
+            if slot is None:
                 continue
             if slot.type == type_:
                 c += slot.count
@@ -141,7 +140,8 @@ class Inventory:
             for i in range(time - 1):
                 self.slots[empty_slots[i]] = InventoryItem(type_, 50, False)
 
-            self.slots[empty_slots[i + 1]] = InventoryItem(type_, count - (50 * (time - 1)), False)
+            self.slots[empty_slots[i + 1]] = InventoryItem(
+                type_, count - (50 * (time - 1)), False)
             return 0
 
     def check_empty_slot(self):
@@ -186,7 +186,7 @@ class Inventory:
     def transfer(self, inventory, forced=False):
         empty_slots = []
         for i, slot in enumerate(self.slots):
-            if slot == None:
+            if slot is None:
                 continue
             if forced and slot.forced:
                 continue
@@ -199,6 +199,9 @@ class Inventory:
 
     @staticmethod
     def parse(string, limit=None):
+        if string == "null":
+            return Inventory(slots=[], limit=5)
+
         items = string.split("|")
         slots = []
 
@@ -215,7 +218,7 @@ class Inventory:
                     forced = False
                 slots.append(InventoryItem(type_, count, forced))
 
-        if limit == None:
+        if limit is None:
             return Inventory(slots=slots, limit=len(slots))
         else:
             return Inventory(slots=slots, limit=limit)
@@ -223,6 +226,7 @@ class Inventory:
     @staticmethod
     def empty_infinite():
         return Inventory(slots=[], limit=-1)
+
 
 class Role:
     def __init__(self, id_, x, y, location, working, inventory):
@@ -263,6 +267,7 @@ class Role:
             return 1
         return -1
 
+
 class RoleController:
     def __init__(self, screen_info, images, build_info):
         self.screen = screen_info
@@ -293,7 +298,7 @@ class RoleController:
     def new_work(self, role_id, type_, work_args):
         role = self.roles[role_id]
         work = role.working
-        if work != None:
+        if work is not None:
             if work.type == WORK.BRING_ANIMAL:
                 animal = self.animalCtlr.animals[work.args["animal"]]
                 animal.tamed = False
@@ -317,7 +322,7 @@ class RoleController:
 
     def set_all_item_forced(self, role_id, forced=True):
         for slot in self.roles[role_id].inventory.slots:
-            if slot == None:
+            if slot is None:
                 continue
 
             slot.forced = forced
@@ -354,8 +359,8 @@ class RoleController:
             x, y = role_info[1].split(",")
             x, y = int(x), int(y)
             location = int(role_info[2])
-            working_info = role_info[3]
-            inventory_info = role_info[4]
+            # working_info = role_info[3]
+            inventory_info = role_info[3]
 
             inventory = Inventory.parse(inventory_info)
 
@@ -366,7 +371,7 @@ class RoleController:
 
     def tick_load(self, tick_interval):
         for role in self.roles.values():
-            if role.working != None:
+            if role.working is not None:
                 if role.working.type == WORK.CHOP:
                     right_position = role.move(role.working["wood"], tick_interval)
 
@@ -525,5 +530,5 @@ class RoleController:
                         self.role_textures[blk_sz] = pygame.transform.scale(
                             self.images["texture/role.png"],
                             (blk_sz, blk_sz),
-                            )
+                        )
                     self.surface.blit(self.role_textures[blk_sz], (x, y))
